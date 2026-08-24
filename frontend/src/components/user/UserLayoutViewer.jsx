@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import UserViewerToolbar from './UserViewerToolbar';
 import CompassControl from '@/components/cad-conversion/editor/CompassControl';
+import RotationGestureHint from '@/components/cad-conversion/editor/RotationGestureHint';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -133,6 +134,13 @@ export default function UserLayoutViewer({ project, conversion }) {
   const [showPlotStatus, setShowPlotStatus] = useState(false);
   const [rotationDeg,    setRotationDeg]    = useState(0);
   const [currentZoom,    setCurrentZoom]    = useState(1);
+  const [showGestureHint, setShowGestureHint] = useState(true);
+
+  // Auto-hide the gesture hint after 4.5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => setShowGestureHint(false), 4500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const wrapperRef = useRef(null);
 
@@ -151,35 +159,27 @@ export default function UserLayoutViewer({ project, conversion }) {
   }, [resetNorth]);
 
   return (
-    <div className="flex-1 relative bg-[#0B0B0B] overflow-hidden flex flex-col">
+    <div className="flex-1 relative bg-transparent overflow-hidden flex flex-col font-sans z-10">
 
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
-      <div className="z-10 relative">
-        <UserViewerToolbar
-          project={project}
-          layoutName={conversion?.originalFileName}
-          zoomIn={zoomIn}
-          zoomOut={zoomOut}
-          resetTransform={resetView}
-          centerView={centerView}
-          currentZoom={currentZoom / 100}
-          isMapView={false}
-          showPlotStatus={showPlotStatus}
-          onTogglePlotStatus={() => setShowPlotStatus(v => !v)}
-        />
-      </div>
+      <UserViewerToolbar
+        project={project}
+        layoutName={conversion?.originalFileName}
+        zoomIn={zoomIn}
+        zoomOut={zoomOut}
+        resetTransform={resetView}
+        centerView={centerView}
+        currentZoom={currentZoom / 100}
+        isMapView={false}
+        showPlotStatus={showPlotStatus}
+        onTogglePlotStatus={() => setShowPlotStatus(v => !v)}
+      />
 
       {/* ── Viewport ─────────────────────────────────────────────────────── */}
-      {/*
-          Layout:
-            viewport (static — compass/floating UI anchors here)
-              └── wrapperRef  (rotation only — transform: rotate(Ndeg))
-                    └── CadEditorWorkspace  (owns its own pan + zoom)
-      */}
-      <div className="flex-1 relative w-full h-full overflow-hidden bg-[#0a0a0a]"
+      <div className="flex-1 relative w-full h-full overflow-hidden bg-transparent"
            style={{
-             backgroundImage: `linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                               linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)`,
+             backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                               linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
              backgroundSize: '80px 80px',
            }}>
 
@@ -195,11 +195,18 @@ export default function UserLayoutViewer({ project, conversion }) {
             readOnly={true}
             showPlotStatus={showPlotStatus}
             onZoomChange={(pct) => setCurrentZoom(pct)}
+            gestureActive={showGestureHint}
           />
         </div>
 
         {/* ── Compass (outside rotation wrapper — always upright) ─────── */}
         <CompassControl rotation={rotationDeg} onResetNorth={resetNorth} />
+
+        {/* ── Gesture Hint Overlay ─────── */}
+        <RotationGestureHint 
+          isVisible={showGestureHint} 
+          onDismiss={() => setShowGestureHint(false)} 
+        />
 
       </div>
     </div>

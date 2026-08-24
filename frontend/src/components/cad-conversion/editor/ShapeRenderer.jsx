@@ -65,14 +65,16 @@ const ShapeRenderer = React.memo(function ShapeRenderer({
     }
   }
 
-  if (reactAttrs.dataCustomColor === 'true' && reactAttrs.vectorEffect) {
-    delete reactAttrs.vectorEffect;
-  }
+
 
   const resolvedFill = resolvePlotFill(shape, plots, statuses, showPlotStatus, false, appearanceSettings, currentIsSelected, readOnly);
 
   if (resolvedFill !== null) {
     reactAttrs.fill = resolvedFill;
+    // Overlay semi-transparency for assigned plots so underlying CAD details remain visible
+    if (activePlotIdStr && showPlotStatus !== false) {
+      reactAttrs.fillOpacity = 0.75;
+    }
   } else if ('fill' in reactAttrs) {
     delete reactAttrs.fill;
   }
@@ -98,6 +100,13 @@ const ShapeRenderer = React.memo(function ShapeRenderer({
   }
 
   if (Tag === 'text' || Tag === 'tspan') {
+    // Hide original CAD text if it matches an assigned plot number, to prevent doubling with PlotLabelsOverlay
+    if (plots && shape.textContent && reactAttrs.dataCustomColor !== 'true') {
+      const txt = shape.textContent.trim().toLowerCase();
+      if (txt && plots.some(p => String(p.plotNumber).trim().toLowerCase() === txt)) {
+        return null;
+      }
+    }
     return (
       <Tag id={shape.id} transform={transformStr} {...reactAttrs} onPointerDown={handlePointerDown}>
         {shape.textContent}

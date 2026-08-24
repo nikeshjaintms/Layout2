@@ -1,7 +1,7 @@
 import CadConversionStudio from '@/components/cad-conversion/CadConversionStudio';
 
 export const metadata = {
-  title: 'CAD Conversion Studio | Layout',
+  title: 'Techomax Solution',
 };
 
 export default async function ProjectDashboardPage({ params }) {

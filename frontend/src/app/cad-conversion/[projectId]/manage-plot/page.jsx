@@ -1,4 +1,5 @@
 'use client';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { useState, useEffect, use } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProjectPlotStatuses, getCadProject } from '@/lib/api';
@@ -10,6 +11,10 @@ import { PLOT_TYPE_CONFIG } from '@/lib/plotTypeConfig';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { Can } from '@/lib/ability';
+
+import Sidebar from '@/components/cad-conversion/Sidebar';
+import Pagination from '@/components/common/Pagination';
 
 export default function ProjectPlotsPage({ params }) {
   const unwrappedParams = use(params);
@@ -127,169 +132,215 @@ export default function ProjectPlotsPage({ params }) {
     setCurrentPage(1);
   };
 
+
   return (
-    <div className="min-h-screen bg-zinc-950 p-8 text-zinc-100 flex flex-col">
-      <div className="max-w-7xl mx-auto w-full space-y-6 flex-1 flex flex-col">
+    <AuthGuard requirePermission={{ action: 'read', subject: 'plot' }}>
+      <div className="min-h-screen bg-[#131826] flex flex-col md:flex-row text-slate-300 overflow-hidden font-sans">
+        <Sidebar projectId={projectId} />
+        <div className="flex-1 p-4 md:p-8 flex flex-col h-[calc(100vh-73px)] md:h-screen overflow-y-auto relative w-full">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto w-full space-y-6 flex-1 flex flex-col relative z-10">
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-5">
             <Link 
               href={editorId ? `/cad-conversion/${projectId}/editor/${editorId}` : `/cad-conversion/${projectId}`} 
-              className="p-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-white"
+              className="p-2 sm:p-2.5 bg-[#1d2440] border border-white/10 hover:border-[#00c8ff]/50 rounded-xl transition-all duration-300 text-slate-400 hover:text-[#00c8ff] shadow-lg group shrink-0"
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">{project ? `${project.name} Plots` : 'Project Plots'}</h1>
-              <p className="text-zinc-400 mt-1">Manage plots for {project ? project.name : `Project #${projectId}`}</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                {project ? `${project.name} Plots` : 'Project Plots'}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#8ba0b8] font-medium mt-1">Manage plots for {project ? project.name : `Project #${projectId}`}</p>
             </div>
           </div>
-          <div className="flex gap-4">
-            <Link 
-              href={`/cad-conversion/${projectId}/add-plot`}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-md shadow flex items-center gap-2 transition-colors"
-            >
-              <Plus size={16} /> Add Plot
-            </Link>
+          <div className="flex sm:gap-4 w-full sm:w-auto">
+            <Can I="create" a="plot">
+              <Link 
+                href={`/cad-conversion/${projectId}/add-plot`}
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#00c8ff] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
+              >
+                <Plus size={18} strokeWidth={2.5} /> Add New Plot
+              </Link>
+            </Can>
           </div>
         </div>
 
         {/* Toolbar */}
-        <div className="flex gap-4 items-center bg-zinc-900 p-4 rounded-xl border border-zinc-800">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+        <div className="flex flex-col md:flex-row gap-4 md:items-center bg-[#1d2440]/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg">
+          <div className="relative flex-1 w-full md:max-w-md group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8ba0b8] group-focus-within:text-[#00c8ff] transition-colors" size={18} />
             <input 
               type="text" 
               placeholder="Search by plot number..." 
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+              className="w-full pl-11 pr-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-white placeholder-[#8ba0b8] font-medium"
             />
           </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-            <select 
-              value={filterStatus}
-              onChange={e => {
-                setFilterStatus(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-9 pr-8 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm appearance-none focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-            >
-              <option value="">All Statuses</option>
-              {statuses.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-            <select 
-              value={filterAssignment}
-              onChange={e => {
-                setFilterAssignment(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-9 pr-8 py-2 bg-zinc-950 border border-zinc-800 rounded-lg text-sm appearance-none focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
-            >
-              <option value="">All Assignments</option>
-              <option value="available">Available</option>
-              <option value="assigned">Assigned</option>
-            </select>
+          <div className="flex gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 bg-[#0f111a]/80 border border-white/10 rounded-xl px-3 py-2.5 flex-1 md:flex-none md:min-w-[180px] focus-within:border-[#00c8ff]/50 focus-within:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all group">
+              <Filter className="text-[#8ba0b8] group-focus-within:text-[#00c8ff] shrink-0 transition-colors" size={16} />
+              <select 
+                value={filterStatus}
+                onChange={e => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-transparent border-none focus:outline-none text-sm text-white font-medium appearance-none cursor-pointer"
+              >
+                <option value="" className="bg-[#131826] text-white">All Statuses</option>
+                {statuses.map(s => (
+                  <option key={s.id} value={s.id} className="bg-[#131826] text-white">{s.name}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none text-[#8ba0b8] shrink-0">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 bg-[#0f111a]/80 border border-white/10 rounded-xl px-3 py-2.5 flex-1 md:flex-none md:min-w-[180px] focus-within:border-[#00c8ff]/50 focus-within:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all group">
+              <Filter className="text-[#8ba0b8] group-focus-within:text-[#00c8ff] shrink-0 transition-colors" size={16} />
+              <select 
+                value={filterAssignment}
+                onChange={e => {
+                  setFilterAssignment(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full bg-transparent border-none focus:outline-none text-sm text-white font-medium appearance-none cursor-pointer"
+              >
+                <option value="" className="bg-[#131826] text-white">All Assignments</option>
+                <option value="available" className="bg-[#131826] text-white">Available</option>
+                <option value="assigned" className="bg-[#131826] text-white">Assigned</option>
+              </select>
+              <div className="pointer-events-none text-[#8ba0b8] shrink-0">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex-1 flex flex-col">
+        {/* Table Container */}
+        <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-zinc-950/50 border-b border-zinc-800">
+              <thead className="bg-[#1d2440] border-b border-white/10 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-4 font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('plotNumber')}>Plot Number {sortConfig.key === 'plotNumber' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                  <th className="px-6 py-4 font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('plotType')}>Plot Type {sortConfig.key === 'plotType' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                  <th className="px-6 py-4 font-medium text-zinc-400">Dimensions</th>
-                  <th className="px-6 py-4 font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('areaSqFt')}>Area (Sq. Ft.) {sortConfig.key === 'areaSqFt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                  <th className="px-6 py-4 font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('status')}>Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                  <th className="px-6 py-4 font-medium text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => handleSort('cadRegionId')}>Assignment {sortConfig.key === 'cadRegionId' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</th>
-                  <th className="px-6 py-4 font-medium text-zinc-400 text-right">Actions</th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] cursor-pointer hover:text-[#00c8ff] transition-colors group" onClick={() => handleSort('plotNumber')}>
+                    <span className="flex items-center gap-1">Plot Number <span className="text-[#00c8ff]">{sortConfig.key === 'plotNumber' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</span></span>
+                  </th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] cursor-pointer hover:text-[#00c8ff] transition-colors" onClick={() => handleSort('plotType')}>
+                    <span className="flex items-center gap-1">Plot Type <span className="text-[#00c8ff]">{sortConfig.key === 'plotType' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</span></span>
+                  </th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Dimensions</th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] cursor-pointer hover:text-[#00c8ff] transition-colors" onClick={() => handleSort('areaSqFt')}>
+                     <span className="flex items-center gap-1">Area (Sq. Ft.) <span className="text-[#00c8ff]">{sortConfig.key === 'areaSqFt' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</span></span>
+                  </th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] cursor-pointer hover:text-[#00c8ff] transition-colors" onClick={() => handleSort('status')}>
+                     <span className="flex items-center gap-1">Status <span className="text-[#00c8ff]">{sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</span></span>
+                  </th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] cursor-pointer hover:text-[#00c8ff] transition-colors" onClick={() => handleSort('cadRegionId')}>
+                     <span className="flex items-center gap-1">Assignment <span className="text-[#00c8ff]">{sortConfig.key === 'cadRegionId' && (sortConfig.direction === 'asc' ? '↑' : '↓')}</span></span>
+                  </th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/50">
+              <tbody className="divide-y divide-white/10">
                 {loading ? (
-                  <tr><td colSpan="7" className="px-6 py-8 text-center text-zinc-500">Loading plots...</td></tr>
+                  <tr><td colSpan="7" className="px-6 py-12 text-center text-[#8ba0b8]">Loading plots...</td></tr>
                 ) : plots.length === 0 ? (
-                  <tr><td colSpan="7" className="px-6 py-8 text-center text-zinc-500">No plots found.</td></tr>
+                  <tr><td colSpan="7" className="px-6 py-12 text-center text-[#8ba0b8]">No plots found.</td></tr>
                 ) : (
                   plots.map(plot => (
-                    <tr key={plot.id} className="hover:bg-zinc-800/20 transition-colors">
-                      <td className="px-6 py-4 font-medium text-zinc-200">{plot.plotNumber}</td>
-                      <td className="px-6 py-4 text-zinc-400">{PLOT_TYPE_CONFIG[plot.plotType]?.displayName || plot.plotType}</td>
-                      <td className="px-6 py-4 text-zinc-400">
+                    <tr key={plot.id} className="hover:bg-white/5 transition-all duration-200 group">
+                      <td className="px-6 py-5 font-semibold text-white">{plot.plotNumber}</td>
+                      <td className="px-6 py-5 text-[#8ba0b8] font-medium">{PLOT_TYPE_CONFIG[plot.plotType]?.displayName || plot.plotType}</td>
+                      <td className="px-6 py-5 text-[#8ba0b8]">
                         {plot.dimensions?.length > 0 
                           ? (
-                              <table className="text-xs">
-                                <tbody>
-                                  {plot.dimensions.map((d, i) => {
-                                    const config = PLOT_TYPE_CONFIG[plot.plotType];
-                                    const isMissing = d.value === null || d.value === undefined || d.value === '';
-                                    const val = isMissing ? '—' : Number(d.value).toFixed(2);
-                                    const unit = isMissing ? '' : (d.unit || 'm');
-                                    
-                                    if (config?.hideLabels) {
+                              <div className="inline-block min-w-[140px]">
+                                <table className="text-xs w-full">
+                                  <tbody>
+                                    {plot.dimensions.map((d, i) => {
+                                      const config = PLOT_TYPE_CONFIG[plot.plotType];
+                                      const isMissing = d.value === null || d.value === undefined || d.value === '';
+                                      const val = isMissing ? '—' : Number(d.value).toFixed(2);
+                                      const unit = isMissing ? '' : (d.unit || 'm');
+                                      
+                                      if (config?.hideLabels) {
+                                        return (
+                                          <tr key={i}>
+                                            <td className="text-white font-medium py-0.5 text-left">{val} {unit}</td>
+                                          </tr>
+                                        );
+                                      }
+                                      
                                       return (
                                         <tr key={i}>
-                                          <td className="text-zinc-200 font-medium py-0.5">{val} {unit}</td>
+                                          <td className="text-[#8ba0b8] pr-2 py-0.5 whitespace-nowrap text-right uppercase tracking-wider text-[10px] w-1/2">{d.label}</td>
+                                          <td className="text-[#8ba0b8]/50 pr-2 py-0.5 w-[10px] text-center">:</td>
+                                          <td className="text-white font-medium py-0.5 whitespace-nowrap text-left w-1/2">{val} <span className="text-[#8ba0b8] font-normal">{unit}</span></td>
                                         </tr>
                                       );
-                                    }
-                                    
-                                    return (
-                                      <tr key={i}>
-                                        <td className="text-zinc-500 pr-2 py-0.5 whitespace-nowrap text-right">{d.label}</td>
-                                        <td className="text-zinc-600 pr-2 py-0.5">:</td>
-                                        <td className="text-zinc-200 font-medium py-0.5 whitespace-nowrap">{val} {unit}</td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
                             )
-                          : '-'}
+                          : <span className="text-[#8ba0b8]/40 pl-8">-</span>}
                       </td>
-                      <td className="px-6 py-4 text-zinc-400">{plot.areaSqFt || '-'}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-5 text-white font-medium pl-10">{plot.areaSqFt || <span className="text-[#8ba0b8]/40">-</span>}</td>
+                      <td className="px-6 py-5">
                         {plot.status ? (
                             <span 
-                              className="px-2.5 py-1 text-xs font-semibold rounded-full border border-black/10 shadow-sm"
+                              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm inline-flex items-center justify-center min-w-[80px]"
                               style={{ 
                                 backgroundColor: plot.status.fillColor, 
-                                color: getContrastYIQ(plot.status.fillColor)
+                                color: getContrastYIQ(plot.status.fillColor),
+                                border: `1px solid ${plot.status.fillColor}40`
                               }}
                             >
                             {plot.status.name}
                           </span>
                         ) : (
-                          <span className="text-zinc-500">-</span>
+                          <span className="text-[#8ba0b8]/40 pl-4">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={plot.cadRegionId ? 'assigned' : 'available'}
-                          onChange={(e) => handleAssignmentChange(plot, e.target.value)}
-                          className="bg-zinc-950 border border-zinc-800 rounded px-2 py-1 text-xs font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
-                        >
-                          <option value="available" className="text-green-400">🟢 Available</option>
-                          <option value="assigned" className="text-blue-400">🔵 Assigned</option>
-                        </select>
+                      <td className="px-6 py-5">
+                        <div className="relative inline-block min-w-[120px]">
+                          <select
+                            value={plot.cadRegionId ? 'assigned' : 'available'}
+                            onChange={(e) => handleAssignmentChange(plot, e.target.value)}
+                            className={`w-full pl-3 pr-8 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00c8ff]/50 cursor-pointer shadow-sm appearance-none border transition-colors ${
+                              plot.cadRegionId 
+                                ? 'bg-[#00c8ff]/10 border-[#00c8ff]/30 text-[#00c8ff]' 
+                                : 'bg-white/5 border-white/10 text-[#8ba0b8] hover:border-white/20'
+                            }`}
+                          >
+                            <option value="available" className="text-[#8ba0b8] bg-[#0f111a]">Available</option>
+                            <option value="assigned" className="text-[#00c8ff] bg-[#0f111a]">Assigned</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-inherit opacity-70">
+                             <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Link href={`/cad-conversion/${projectId}/manage-plot/${plot.id}/edit`} className="p-2 text-zinc-400 hover:text-indigo-400 bg-zinc-950 hover:bg-zinc-800 rounded transition-colors">
-                            <Edit2 size={16} />
-                          </Link>
-                          <button onClick={() => handleDelete(plot.id)} className="p-2 text-zinc-400 hover:text-red-400 bg-zinc-950 hover:bg-zinc-800 rounded transition-colors">
-                            <Trash2 size={16} />
-                          </button>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                          <Can I="edit" a="plot">
+                            <Link href={`/cad-conversion/${projectId}/manage-plot/${plot.id}/edit`} className="p-2 text-[#8ba0b8] hover:text-[#00c8ff] bg-white/5 border border-white/10 hover:border-[#00c8ff]/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]">
+                              <Edit2 size={15} />
+                            </Link>
+                          </Can>
+                          <Can I="delete" a="plot">
+                            <button onClick={() => handleDelete(plot.id)} className="p-2 text-[#8ba0b8] hover:text-red-400 bg-white/5 border border-white/10 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                              <Trash2 size={15} />
+                            </button>
+                          </Can>
                         </div>
                       </td>
                     </tr>
@@ -300,48 +351,20 @@ export default function ProjectPlotsPage({ params }) {
           </div>
           
           {/* Pagination Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900 gap-4">
-            <div className="text-sm text-zinc-400">
-              Showing {totalRecords === 0 ? 0 : ((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalRecords)} of {totalRecords} plots
-            </div>
-            
-            <div className="flex gap-2 items-center">
-              <button 
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1 || totalRecords === 0}
-                className="px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-md text-sm text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800 transition-colors font-medium"
-              >
-                Previous
-              </button>
-              
-              <div className="hidden sm:flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${
-                      currentPage === pageNum 
-                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm' 
-                        : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:bg-zinc-800'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
-              </div>
-
-              <button 
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages || totalRecords === 0}
-                className="px-4 py-2 bg-zinc-950 border border-zinc-800 rounded-md text-sm text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-800 transition-colors font-medium"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={totalRecords}
+            limit={limit}
+            onPageChange={setCurrentPage}
+            itemName="plots"
+            theme="dark"
+          />
         </div>
 
+          </div>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

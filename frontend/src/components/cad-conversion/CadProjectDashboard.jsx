@@ -1,35 +1,34 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getCadProject, getCadConversions, deleteCadConversion, renameCadConversion } from '@/lib/api';
+import { fetchProjectById } from '@/redux/slices/projectsSlice';
+import { fetchConversions, deleteConversion, renameConversion, uploadConversion } from '@/redux/slices/conversionsSlice';
 import Swal from 'sweetalert2';
 
 export default function CadProjectDashboard({ projectId }) {
-  const [project, setProject] = useState(null);
-  const [conversions, setConversions] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
+  const dispatch = useDispatch();
   const router = useRouter();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const proj = await getCadProject(projectId);
-      setProject(proj);
-      
-      const convs = await getCadConversions();
-      // Filter for this project
-      setConversions(convs.filter(c => c.projectId === parseInt(projectId)));
-    } catch (err) {
-      console.error(err);
-    }
-  }, [projectId]);
+  const project = useSelector(state => state.projects.selectedProject);
+  const allConversions = useSelector(state => state.conversions.items);
+  const conversions = allConversions.filter(c => c.projectId === parseInt(projectId));
+  
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 3000);
+    if (projectId) {
+      dispatch(fetchProjectById(projectId));
+      dispatch(fetchConversions(projectId));
+    }
+    
+    const interval = setInterval(() => {
+      dispatch(fetchConversions(projectId));
+    }, 3000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [projectId, dispatch]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -41,19 +40,11 @@ export default function CadProjectDashboard({ projectId }) {
     formData.append('projectId', projectId);
 
     try {
-      const res = await fetch('http://localhost:5000/api/cad-conversion/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        fetchData();
-      } else {
-        Swal.fire({ icon: 'error', title: 'Upload Failed', text: data.error || 'Unknown error', background: '#18181b', color: '#fff' });
-      }
+      await dispatch(uploadConversion({ formData })).unwrap();
+      dispatch(fetchConversions(projectId));
     } catch (err) {
       console.error(err);
-      Swal.fire({ icon: 'error', title: 'Upload Error', text: err.message, background: '#18181b', color: '#fff' });
+      Swal.fire({ icon: 'error', title: 'Upload Error', text: err || 'Unknown error', background: '#18181b', color: '#fff' });
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -75,8 +66,7 @@ export default function CadProjectDashboard({ projectId }) {
 
     if (result.isConfirmed) {
       try {
-        await deleteCadConversion(id);
-        fetchData();
+        await dispatch(deleteConversion(id)).unwrap();
         Swal.fire({
           title: 'Deleted!',
           text: 'Project has been deleted successfully.',
@@ -108,11 +98,10 @@ export default function CadProjectDashboard({ projectId }) {
 
     if (!newName || newName === currentName) return;
     try {
-      await renameCadConversion(id, newName);
-      fetchData();
+      await dispatch(renameConversion({ id, newName })).unwrap();
     } catch (err) {
       console.error(err);
-      Swal.fire({ icon: 'error', title: 'Rename Failed', text: err.message, background: '#18181b', color: '#fff' });
+      Swal.fire({ icon: 'error', title: 'Rename Failed', text: err || 'Unknown error', background: '#18181b', color: '#fff' });
     }
   };
 

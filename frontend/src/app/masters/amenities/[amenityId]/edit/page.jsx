@@ -1,4 +1,5 @@
 'use client';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getAmenity } from '@/lib/api';
@@ -48,5 +49,9 @@ export default function EditAmenityPage() {
     );
   }
 
-  return <AmenityForm initialData={initialData} />;
+  return (
+    <AuthGuard requirePermission={{ action: 'edit', subject: 'amenity' }}>
+      <AmenityForm initialData={initialData} />
+    </AuthGuard>
+  );
 }

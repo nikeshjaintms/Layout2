@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import PlotStatusForm from '@/components/cad-conversion/plot-statuses/PlotStatusForm';
 import { getPlotStatus } from '@/lib/api';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 export default function EditPlotStatusPage({ params }) {
   const unwrappedParams = use(params);
@@ -33,5 +34,9 @@ export default function EditPlotStatusPage({ params }) {
     return <div className="min-h-screen bg-zinc-950 p-8 flex items-center justify-center text-red-500">{error}</div>;
   }
 
-  return <PlotStatusForm projectId={projectId} statusId={statusId} initialData={statusData} />;
+  return (
+    <AuthGuard requirePermission={{ action: 'edit', subject: 'status' }}>
+      <PlotStatusForm projectId={projectId} statusId={statusId} initialData={statusData} />
+    </AuthGuard>
+  );
 }

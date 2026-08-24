@@ -2,7 +2,7 @@ import React from 'react';
 import UserProjectDetails from '@/components/user/UserProjectDetails';
 
 export const metadata = {
-  title: 'Project Details | Real Estate',
+  title: 'Techomax Solution',
   description: 'View layout and available plots.',
 };
 

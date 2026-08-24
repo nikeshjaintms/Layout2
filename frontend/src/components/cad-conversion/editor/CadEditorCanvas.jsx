@@ -652,7 +652,8 @@ export default function CadEditorCanvas({
   placedAmenities = [],
   setPlacedAmenities,
   conversionId,
-  appearanceSettings
+  appearanceSettings,
+  gestureActive = false
 }) {
   const containerRef = useRef(null);
   const contentRef = useRef(null);
@@ -664,6 +665,7 @@ export default function CadEditorCanvas({
 
   // Transformation state
   const transform = useRef({ x: 0, y: 0, scale: 1 });
+  const initialTransformRef = useRef(null);
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const reqFrame = useRef(null);
@@ -680,7 +682,19 @@ export default function CadEditorCanvas({
   const [currentDrawCoords, setCurrentDrawCoords] = useState(null);
   const [drawStep, setDrawStep] = useState(0);
   const [drawEnd, setDrawEnd] = useState(null);
-  const [drawPoints, setDrawPoints] = useState([]);
+  const [drawPoints, _setDrawPoints] = useState([]);
+  const drawPointsRef = useRef([]);
+  const setDrawPoints = useCallback((val) => {
+    let next;
+    if (typeof val === 'function') {
+      next = val(drawPointsRef.current);
+    } else {
+      next = val;
+    }
+    drawPointsRef.current = next;
+    _setDrawPoints(next);
+  }, []);
+  const lastPolygonClickRef = useRef({ time: 0, x: 0, y: 0 });
   const [textInput, setTextInput] = useState(null);
 
   // Selection & Transform state
@@ -701,7 +715,7 @@ export default function CadEditorCanvas({
 
   // Status Reveal WAAPI Hook
   const layoutRevealKey = projectId && conversionId ? `${projectId}:${conversionId}` : '';
-  usePlotRevealAnimation(svgRef, documentState.shapes, layoutRevealKey);
+  usePlotRevealAnimation(svgRef, documentState.shapes, layoutRevealKey, gestureActive);
 
   // Sync zoom/coords throttled
   const notifyChanges = () => {
@@ -824,27 +838,127 @@ export default function CadEditorCanvas({
       transform.current.y = (rect.height / 2) - ((rect.height / 2) * newScale);
     }
     
+    // Dynamically capture the project's normal view
+    initialTransformRef.current = {
+      x: transform.current.x,
+      y: transform.current.y,
+      scale: transform.current.scale
+    };
+    
     requestUpdate();
   }, []);
 
   useEffect(() => {
+    const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const animateTransform = (targetX, targetY, targetScale, duration = 400) => {
+      const startX = transform.current.x;
+      const startY = transform.current.y;
+      const startScale = transform.current.scale;
+      const startTime = performance.now();
+
+      const animate = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = easeInOutCubic(progress);
+
+        transform.current.x = startX + (targetX - startX) * ease;
+        transform.current.y = startY + (targetY - startY) * ease;
+        transform.current.scale = startScale + (targetScale - startScale) * ease;
+
+        requestUpdate();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      requestAnimationFrame(animate);
+    };
+
     const handleFitScreen = () => fitToScreen();
     const handleZoomIn    = () => setScale(transform.current.scale * 1.25);
     const handleZoomOut   = () => setScale(transform.current.scale / 1.25);
     // Fired by the viewer when the user wants to clear selection (e.g. clicking
     // empty canvas space from UserLayoutViewer context).
     const handleDeselect  = () => setSelectedShapeIds([]);
+    
+    const handleSearchSelectPlot = (e) => {
+      const { plot } = e.detail;
+      if (!plot) {
+        setSelectedShapeIds([]);
+        if (initialTransformRef.current) {
+          animateTransform(
+            initialTransformRef.current.x,
+            initialTransformRef.current.y,
+            initialTransformRef.current.scale,
+            400
+          );
+        }
+        return;
+      }
+
+      let shapeId = null;
+      
+      // 1. Search DOM for data-plot-id or cad-plot-* id
+      if (svgRef.current) {
+        const el = svgRef.current.querySelector(`[data-plot-id="${CSS.escape(plot.id)}"], #cad-plot-${CSS.escape(plot.id)}`);
+        if (el && el.id) {
+          shapeId = el.id;
+        }
+      }
+
+      // 2. Fallback to cadRegionId if provided
+      if (!shapeId && plot.cadRegionId) {
+        shapeId = plot.cadRegionId;
+      }
+
+      if (shapeId) {
+        setSelectedShapeIds([shapeId]);
+
+        // Calculate bbox and zoom to it
+        setTimeout(() => {
+          if (!svgRef.current || !containerRef.current) return;
+          const el = svgRef.current.querySelector(`[id="${CSS.escape(shapeId)}"]`);
+          if (el) {
+            try {
+              const bbox = el.getBBox();
+              const containerRect = containerRef.current.getBoundingClientRect();
+              
+              const padding = 0.4;
+              const scaleX = containerRect.width / (bbox.width * (1 + padding));
+              const scaleY = containerRect.height / (bbox.height * (1 + padding));
+              const newScale = Math.min(scaleX, scaleY, 50);
+              
+              const cx = bbox.x + bbox.width / 2;
+              const cy = bbox.y + bbox.height / 2;
+              
+              const targetX = (containerRect.width / 2) - cx * newScale;
+              const targetY = (containerRect.height / 2) - cy * newScale;
+              
+              animateTransform(targetX, targetY, newScale, 400);
+            } catch (err) {
+              console.warn("Could not calculate bounding box for plot", err);
+            }
+          }
+        }, 50);
+      } else {
+        setSelectedShapeIds([]);
+      }
+    };
 
     window.addEventListener('editor-fit-screen',    handleFitScreen);
     window.addEventListener('editor-zoom-in',       handleZoomIn);
     window.addEventListener('editor-zoom-out',      handleZoomOut);
     window.addEventListener('viewer-deselect-plot', handleDeselect);
+    window.addEventListener('viewer-search-select-plot', handleSearchSelectPlot);
 
     return () => {
       window.removeEventListener('editor-fit-screen',    handleFitScreen);
       window.removeEventListener('editor-zoom-in',       handleZoomIn);
       window.removeEventListener('editor-zoom-out',      handleZoomOut);
       window.removeEventListener('viewer-deselect-plot', handleDeselect);
+      window.removeEventListener('viewer-search-select-plot', handleSearchSelectPlot);
     };
   }, [fitToScreen]);
 
@@ -1195,11 +1309,11 @@ export default function CadEditorCanvas({
     };
 
     const handlePolygonComplete = (e) => {
-      if ((e.key === 'Enter' || e.key === 'Escape') && drawPoints.length > 1) {
-        commitDrawingPolygon(drawPoints);
+      if ((e.key === 'Enter' || e.key === 'Escape') && drawPointsRef.current.length > 1) {
+        commitDrawingPolygon(drawPointsRef.current);
         setDrawPoints([]);
         setCurrentDrawCoords(null);
-      } else if (e.key === 'Escape' && drawPoints.length <= 1) {
+      } else if (e.key === 'Escape' && drawPointsRef.current.length <= 1) {
         setDrawPoints([]);
         setCurrentDrawCoords(null);
       }
@@ -1375,10 +1489,22 @@ export default function CadEditorCanvas({
       if (selectedShapeIds.length > 0) setSelectedShapeIds([]);
       const internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
       if (internalCoords) {
-        if (e.detail === 2) {
+        const now = Date.now();
+        const lastClick = lastPolygonClickRef.current;
+        const timeDiff = now - lastClick.time;
+        const isDoubleClick = timeDiff > 0 && timeDiff < 400 && 
+                              Math.abs(e.clientX - lastClick.x) < 15 && 
+                              Math.abs(e.clientY - lastClick.y) < 15;
+        
+        lastPolygonClickRef.current = { time: now, x: e.clientX, y: e.clientY };
+
+        if (isDoubleClick) {
           // Finish polygon on double-click
-          if (drawPoints.length > 1) {
-            commitDrawingPolygon(drawPoints);
+          // The first click of this double click was already processed synchronously in drawPointsRef.
+          // However, we want to ensure we don't have duplicate points at the end.
+          const pts = [...drawPointsRef.current];
+          if (pts.length > 1) {
+            commitDrawingPolygon(pts);
             setDrawPoints([]);
             setCurrentDrawCoords(null);
           }
@@ -1828,7 +1954,7 @@ export default function CadEditorCanvas({
     const newShape = {
       id: shapeId,
       type: '',
-      attributes: { stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true" },
+      attributes: { stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
       transform: { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 },
       children: []
     };
@@ -1868,7 +1994,7 @@ export default function CadEditorCanvas({
     const newShape = {
       id: shapeId,
       type: 'path',
-      attributes: { d: `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`, stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true" },
+      attributes: { d: `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`, stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
       transform: { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 },
       children: []
     };
@@ -1891,8 +2017,8 @@ export default function CadEditorCanvas({
 
     const newShape = {
       id: shapeId,
-      type: 'polyline',
-      attributes: { points: pointsStr, fill: "none", stroke: strokeColor, "stroke-width": strokeWidth, "data-custom-color": "true" },
+      type: 'polygon',
+      attributes: { points: pointsStr, fill: "none", stroke: strokeColor, "stroke-width": strokeWidth, "data-custom-color": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
       transform: { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 },
       children: []
     };
@@ -2351,7 +2477,7 @@ export default function CadEditorCanvas({
         >
           <div
             ref={svgRef}
-            className={`text-white w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full cad-svg-container${focusedId ? ' focus-active' : ''} ${(activeTool === 'pointer' || activeTool === 'eraser' || activeTool === 'paint_bucket' || activeTool === 'partial_delete' || activeTool === 'vector_eraser' || activeTool === 'draw_line' || activeTool === 'draw_arrow' || activeTool === 'draw_circle' || activeTool === 'draw_polygon' || activeTool === 'draw_curve' || activeTool === 'draw_text') ? 'pointer-events-auto' : 'pointer-events-none'}`}
+            className={`text-white w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full cad-svg-container${(focusedId && !readOnly) ? ' focus-active' : ''} ${(activeTool === 'pointer' || activeTool === 'eraser' || activeTool === 'paint_bucket' || activeTool === 'partial_delete' || activeTool === 'vector_eraser' || activeTool === 'draw_line' || activeTool === 'draw_arrow' || activeTool === 'draw_circle' || activeTool === 'draw_polygon' || activeTool === 'draw_curve' || activeTool === 'draw_text') ? 'pointer-events-auto' : 'pointer-events-none'}`}
           >
             <svg
               viewBox={documentState.viewBox}
@@ -2510,12 +2636,31 @@ export default function CadEditorCanvas({
                   />
                 )}
 
-                {activeTool === 'draw_polygon' && drawPoints.length > 0 && currentDrawCoords && (
-                  <polyline
-                    points={drawPoints.map(p => `${p.x},${p.y}`).join(' ') + ` ${currentDrawCoords.x},${currentDrawCoords.y}`}
-                    fill="none" stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4" vectorEffect="non-scaling-stroke"
-                  />
-                )}
+                {activeTool === 'draw_polygon' && drawPoints.length > 0 && currentDrawCoords && (() => {
+                  const ptScale = transform.current.scale || 1;
+                  const ptSize = 4 / ptScale;
+                  const ptStrokeW = 1 / ptScale;
+                  return (
+                    <>
+                      <polyline
+                        points={drawPoints.map(p => `${p.x},${p.y}`).join(' ') + ` ${currentDrawCoords.x},${currentDrawCoords.y}`}
+                        fill="none" stroke="#00c8ff" strokeWidth={strokeWidth} strokeDasharray="4" vectorEffect="non-scaling-stroke"
+                      />
+                      {drawPoints.map((p, i) => (
+                        <rect 
+                          key={`poly-pt-${i}`}
+                          x={p.x - (ptSize / 2)}
+                          y={p.y - (ptSize / 2)}
+                          width={ptSize}
+                          height={ptSize}
+                          fill="#ffffff"
+                          stroke="#00c8ff"
+                          strokeWidth={ptStrokeW}
+                        />
+                      ))}
+                    </>
+                  );
+                })()}
 
                 {!readOnly && selectedShapeIds.length === 1 && (
                   <TransformControls

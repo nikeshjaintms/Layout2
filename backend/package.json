@@ -34,6 +34,7 @@
     "canvas": "^3.2.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
     "dompurify": "^3.4.12",
     "dxf-parser": "^1.1.2",
     "html-to-image": "^1.11.13",
@@ -58,6 +59,7 @@
     "@nestjs/testing": "^11.0.1",
     "@types/archiver": "^8.0.0",
     "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
     "@types/dompurify": "^3.2.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
@@ -98,5 +100,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }

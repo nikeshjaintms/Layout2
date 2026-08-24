@@ -13,11 +13,23 @@ export const fetchPlots = createAsyncThunk(
   }
 );
 
+export const fetchPublicPlots = createAsyncThunk(
+  'plots/fetchPublicPlots',
+  async ({ projectId, options }, { rejectWithValue }) => {
+    try {
+      const response = await api.getPublicProjectPlots(projectId, options);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch public plots');
+    }
+  }
+);
+
 export const fetchPlotById = createAsyncThunk(
   'plots/fetchPlotById',
-  async (plotId, { rejectWithValue }) => {
+  async ({ projectId, plotId }, { rejectWithValue }) => {
     try {
-      const response = await api.getProjectPlot(plotId);
+      const response = await api.getProjectPlot(projectId, plotId);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch plot');
@@ -33,6 +45,18 @@ export const createPlot = createAsyncThunk(
       return response;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to create plot');
+    }
+  }
+);
+
+export const createPlotsBulk = createAsyncThunk(
+  'plots/createPlotsBulk',
+  async ({ projectId, data }, { rejectWithValue }) => {
+    try {
+      const response = await api.createProjectPlotsBulk(projectId, data);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to create plots in bulk');
     }
   }
 );
@@ -114,15 +138,15 @@ const plotsSlice = createSlice({
       })
       .addCase(fetchPlots.fulfilled, (state, action) => {
         state.loading = false;
-        // The API returns paginated data (data, meta) or array
         if (Array.isArray(action.payload)) {
           state.items = action.payload;
           state.total = action.payload.length;
         } else {
           state.items = action.payload.data || [];
-          state.total = action.payload.meta?.total || 0;
-          state.page = action.payload.meta?.page || state.page;
-          state.totalPages = action.payload.meta?.totalPages || state.totalPages;
+          const meta = action.payload.meta || action.payload.pagination;
+          state.total = meta?.total || 0;
+          state.page = meta?.page || state.page;
+          state.totalPages = meta?.totalPages || state.totalPages;
         }
       })
       .addCase(fetchPlots.rejected, (state, action) => {
@@ -130,9 +154,38 @@ const plotsSlice = createSlice({
         state.error = action.payload;
       })
 
+      // Fetch Public
+      .addCase(fetchPublicPlots.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPublicPlots.fulfilled, (state, action) => {
+        state.loading = false;
+        if (Array.isArray(action.payload)) {
+          state.items = action.payload;
+          state.total = action.payload.length;
+        } else {
+          state.items = action.payload.data || [];
+          const meta = action.payload.meta || action.payload.pagination;
+          state.total = meta?.total || 0;
+          state.page = meta?.page || state.page;
+          state.totalPages = meta?.totalPages || state.totalPages;
+        }
+      })
+      .addCase(fetchPublicPlots.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       // Create
       .addCase(createPlot.fulfilled, (state, action) => {
         state.items.push(action.payload);
+      })
+      .addCase(createPlotsBulk.fulfilled, (state, action) => {
+        // Assuming bulk create returns an array of plots
+        if (Array.isArray(action.payload)) {
+          state.items.push(...action.payload);
+        }
       })
 
       // Update

@@ -2,6 +2,7 @@
 import { useState, useEffect, use } from 'react';
 import PlotForm from '@/components/cad-conversion/plots/PlotForm';
 import { getProjectPlot } from '@/lib/api';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 export default function EditPlotPage({ params }) {
   const unwrappedParams = use(params);
@@ -13,7 +14,7 @@ export default function EditPlotPage({ params }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    getProjectPlot(plotId)
+    getProjectPlot(projectId, plotId)
       .then(data => {
         setPlot(data);
         setLoading(false);
@@ -33,5 +34,9 @@ export default function EditPlotPage({ params }) {
     return <div className="min-h-screen bg-zinc-950 p-8 flex items-center justify-center text-red-500">{error}</div>;
   }
 
-  return <PlotForm projectId={projectId} plotId={plotId} initialData={plot} />;
+  return (
+    <AuthGuard requirePermission={{ action: 'edit', subject: 'plot' }}>
+      <PlotForm projectId={projectId} plotId={plotId} initialData={plot} />
+    </AuthGuard>
+  );
 }

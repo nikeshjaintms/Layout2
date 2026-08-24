@@ -10,7 +10,7 @@ const computeTightBBox = (type, attrs) => {
       width: Math.abs(x2 - x1),
       height: Math.abs(y2 - y1)
     };
-  } else if (type === 'polyline') {
+  } else if (type === 'polyline' || type === 'polygon') {
     const pts = (attrs.points || '').trim().split(/[\s,]+/);
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (let i = 0; i < pts.length; i += 2) {
@@ -180,7 +180,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
   const startAttributes = useRef(null);
   const reqFrame = useRef(null);
 
-  const isGeometryType = shape && ['line', 'polyline', 'path'].includes(shape.type);
+  const isGeometryType = shape && ['line', 'polyline', 'polygon', 'path'].includes(shape.type);
 
   const applyMatrixToAttributes = (attrs, type, matrix) => {
     const transformPt = (x, y) => {
@@ -196,7 +196,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
       const p2 = transformPt(parseFloat(attrs.x2), parseFloat(attrs.y2));
       newAttrs.x1 = p1.x; newAttrs.y1 = p1.y;
       newAttrs.x2 = p2.x; newAttrs.y2 = p2.y;
-    } else if (type === 'polyline') {
+    } else if (type === 'polyline' || type === 'polygon') {
       const pts = (attrs.points || '').trim().split(/[\s,]+/);
       for (let i = 0; i < pts.length; i += 2) {
         if (pts[i] && pts[i+1]) {
@@ -473,7 +473,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
       const p2 = transformPt(parseFloat(attrs.x2), parseFloat(attrs.y2));
       newAttrs.x1 = p1.x; newAttrs.y1 = p1.y;
       newAttrs.x2 = p2.x; newAttrs.y2 = p2.y;
-    } else if (type === 'polyline') {
+    } else if (type === 'polyline' || type === 'polygon') {
       const pts = (attrs.points || '').trim().split(/[\s,]+/);
       for (let i = 0; i < pts.length; i += 2) {
         if (pts[i] && pts[i+1]) {
@@ -521,7 +521,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
       const p2 = transformPt(parseFloat(attrs.x2), parseFloat(attrs.y2));
       newAttrs.x1 = p1.x; newAttrs.y1 = p1.y;
       newAttrs.x2 = p2.x; newAttrs.y2 = p2.y;
-    } else if (type === 'polyline') {
+    } else if (type === 'polyline' || type === 'polygon') {
       const pts = (attrs.points || '').trim().split(/[\s,]+/);
       for (let i = 0; i < pts.length; i += 2) {
         if (pts[i] && pts[i+1]) {
@@ -634,7 +634,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
             } else if (dragType.current === 'point-end') {
               attrs.x2 = localPt.x; attrs.y2 = localPt.y;
             }
-          } else if (shape.type === 'polyline') {
+          } else if (shape.type === 'polyline' || shape.type === 'polygon') {
             const ptIndex = parseInt(dragType.current.split('-')[1]);
             const pts = (startAttributes.current.points || '').trim().split(/[\s,]+/);
             if (ptIndex * 2 + 1 < pts.length) {
@@ -683,7 +683,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
         if (shape.type === 'line') {
           el.setAttribute('x1', attrs.x1); el.setAttribute('y1', attrs.y1);
           el.setAttribute('x2', attrs.x2); el.setAttribute('y2', attrs.y2);
-        } else if (shape.type === 'polyline') {
+        } else if (shape.type === 'polyline' || shape.type === 'polygon') {
           el.setAttribute('points', attrs.points);
         } else if (shape.type === 'path') {
           el.setAttribute('d', attrs.d);
@@ -779,7 +779,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
     if (shape.type === 'line') {
       points.push({ id: 'start', x: parseFloat(currentAttrs.x1 ?? shape.attributes.x1), y: parseFloat(currentAttrs.y1 ?? shape.attributes.y1) });
       points.push({ id: 'end', x: parseFloat(currentAttrs.x2 ?? shape.attributes.x2), y: parseFloat(currentAttrs.y2 ?? shape.attributes.y2) });
-    } else if (shape.type === 'polyline') {
+    } else if (shape.type === 'polyline' || shape.type === 'polygon') {
       const ptsStr = currentAttrs.points ?? shape.attributes.points ?? '';
       const pts = ptsStr.trim().split(/[\s,]+/);
       for (let i = 0; i < pts.length; i += 2) {
@@ -908,8 +908,8 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
         {shape.type === 'line' && (
            <line x1={points[0]?.x} y1={points[0]?.y} x2={points[1]?.x} y2={points[1]?.y} stroke="transparent" strokeWidth={20 / actualScale} cursor="move" pointerEvents="stroke" onPointerDown={(e) => handlePointerDown(e, 'move')} />
         )}
-        {shape.type === 'polyline' && (
-           <polyline points={currentAttrs.points ?? shape.attributes.points} stroke="transparent" strokeWidth={20 / actualScale} fill="none" cursor="move" pointerEvents="stroke" onPointerDown={(e) => handlePointerDown(e, 'move')} />
+        {(shape.type === 'polyline' || shape.type === 'polygon') && (
+           <polygon points={currentAttrs.points ?? shape.attributes.points} stroke="transparent" strokeWidth={20 / actualScale} fill="none" cursor="move" pointerEvents="stroke" onPointerDown={(e) => handlePointerDown(e, 'move')} />
         )}
         {shape.type === 'path' && (
            <path d={currentAttrs.d ?? shape.attributes.d} stroke="transparent" strokeWidth={20 / actualScale} fill="none" cursor="move" pointerEvents="stroke" onPointerDown={(e) => handlePointerDown(e, 'move')} />
@@ -927,6 +927,21 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
           />
         ))}
 
+        {/* Geometry Rotation Handle */}
+        <line
+          x1={dynBbox.x + dynBbox.width / 2} y1={dynBbox.y}
+          x2={dynBbox.x + dynBbox.width / 2} y2={dynBbox.y - rotLineLen}
+          stroke="#3b82f6" strokeWidth={strokeW}
+          pointerEvents="none"
+        />
+        <circle
+          cx={dynBbox.x + dynBbox.width / 2} cy={dynBbox.y - rotLineLen}
+          r={handleSize / 1.5}
+          fill="#ffffff" stroke="#3b82f6" strokeWidth={strokeW}
+          cursor="crosshair" pointerEvents="all"
+          onPointerDown={(e) => handlePointerDown(e, 'rotate')}
+        />
+
       </g>
     );
   };
@@ -943,6 +958,21 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
 
         {/* Central Move Handle */}
         {renderMoveHandle(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)}
+
+        {/* Rotation Handle */}
+        <line
+          x1={bbox.x + bbox.width / 2} y1={bbox.y}
+          x2={bbox.x + bbox.width / 2} y2={bbox.y - rotLineLen}
+          stroke="#3b82f6" strokeWidth={strokeW}
+          pointerEvents="none"
+        />
+        <circle
+          cx={bbox.x + bbox.width / 2} cy={bbox.y - rotLineLen}
+          r={handleSize / 1.5}
+          fill="#ffffff" stroke="#3b82f6" strokeWidth={strokeW}
+          cursor="crosshair" pointerEvents="all"
+          onPointerDown={(e) => handlePointerDown(e, 'rotate')}
+        />
 
         {[
           { x: bbox.x, y: bbox.y, cursor: 'nwse-resize', type: 'resize-nw' },

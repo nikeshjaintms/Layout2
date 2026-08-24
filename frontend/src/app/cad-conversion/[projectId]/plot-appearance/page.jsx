@@ -1,4 +1,5 @@
 'use client';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -6,6 +7,8 @@ import { ColorPicker } from 'antd';
 import { Palette, Save, ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAppearanceSettings, updateAppearanceSettings, createAppearanceSettings } from '@/redux/slices/appearanceSlice';
+import { Can } from '@/lib/ability';
+import Sidebar from '@/components/cad-conversion/Sidebar';
 
 export default function AppearanceSettingsPage({ params }) {
   const unwrappedParams = React.use(params);
@@ -89,54 +92,62 @@ export default function AppearanceSettingsPage({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
+    <AuthGuard requirePermission={{ action: 'read', subject: 'appearance' }}>
+      <div className="min-h-screen bg-[#131826] flex flex-col md:flex-row text-slate-300 overflow-hidden font-sans">
+        <Sidebar projectId={projectId} />
+        <div className="flex-1 p-4 md:p-8 flex flex-col h-[calc(100vh-73px)] md:h-screen overflow-y-auto relative w-full">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto space-y-6 w-full flex-1 flex flex-col relative z-10">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-5">
+            <Link 
               href={`/cad-conversion/${projectId}`}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 sm:p-2.5 bg-[#1d2440] border border-white/10 hover:border-[#00c8ff]/50 rounded-xl transition-all duration-300 text-slate-400 hover:text-[#00c8ff] shadow-lg group shrink-0"
             >
-              <ArrowLeft className="w-5 h-5 text-zinc-400" />
+              <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             </Link>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Palette className="w-5 h-5 text-blue-400" />
+              <div className="p-2 bg-[#00c8ff]/10 rounded-xl border border-[#00c8ff]/30 hidden sm:block">
+                <Palette className="w-6 h-6 text-[#00c8ff]" />
               </div>
-              <h1 className="text-lg font-semibold text-white">Appearance Settings</h1>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                  Appearance Settings
+                </h1>
+                <p className="text-xs sm:text-sm text-[#8ba0b8] font-medium mt-1">
+                  Customize the primary colors for plots and dimensions
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <form onSubmit={handleSave} className="bg-white/5 border border-white/10 rounded-2xl p-6 sm:p-8 space-y-8">
+        <div className="w-full">
+          <form onSubmit={handleSave} className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl p-6 sm:p-8 space-y-8 shadow-xl">
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center gap-3 text-red-400 shadow-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <p className="text-sm font-medium">{error}</p>
             </div>
           )}
 
           {successMessage && (
-            <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 flex items-center gap-3 text-green-400">
+            <div className="bg-[#00c8ff]/10 border border-[#00c8ff]/30 rounded-xl p-4 flex items-center gap-3 text-[#00c8ff] shadow-[0_0_15px_rgba(0,200,255,0.1)]">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               <p className="text-sm font-medium">{successMessage}</p>
             </div>
           )}
 
           <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-medium text-white mb-1">Color Theme</h2>
-              <p className="text-sm text-zinc-400 mb-6">Customize the primary colors for plots and dimensions in this project.</p>
-            </div>
-
             {/* Dimension Color */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
               <div>
-                <label className="text-sm font-medium text-zinc-300">Dimension Color</label>
+                <label className="text-sm font-bold text-white uppercase tracking-wider">Dimension Color</label>
               </div>
               <div className="sm:col-span-2 flex items-center gap-4">
                 <div className="flex-1">
@@ -145,7 +156,7 @@ export default function AppearanceSettingsPage({ params }) {
                     onChange={(_, hex) => setSettings(prev => ({ ...prev, dimensionColor: hex }))}
                     showText
                     format="hex"
-                    className="w-full"
+                    className="w-full h-10 border border-white/10 hover:border-[#00c8ff]/50 shadow-sm bg-[#0f111a]/50 !text-white"
                     styles={{
                       popup: { zIndex: 9999 }
                     }}
@@ -155,9 +166,9 @@ export default function AppearanceSettingsPage({ params }) {
             </div>
 
             {/* Plot Color */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center pt-6 border-t border-white/5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center pt-6 border-t border-white/10">
               <div>
-                <label className="text-sm font-medium text-zinc-300">Plot Color</label>
+                <label className="text-sm font-bold text-white uppercase tracking-wider">Plot Color</label>
               </div>
               <div className="sm:col-span-2 flex items-center gap-4">
                 <div className="flex-1">
@@ -166,7 +177,7 @@ export default function AppearanceSettingsPage({ params }) {
                     onChange={(_, hex) => setSettings(prev => ({ ...prev, plotColor: hex }))}
                     showText
                     format="hex"
-                    className="w-full"
+                    className="w-full h-10 border border-white/10 hover:border-[#00c8ff]/50 shadow-sm bg-[#0f111a]/50 !text-white"
                     styles={{
                       popup: { zIndex: 9999 }
                     }}
@@ -176,9 +187,9 @@ export default function AppearanceSettingsPage({ params }) {
             </div>
 
             {/* Plot Label Color */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center pt-6 border-t border-white/5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center pt-6 border-t border-white/10">
               <div>
-                <label className="text-sm font-medium text-zinc-300">Plot Label Color</label>
+                <label className="text-sm font-bold text-white uppercase tracking-wider">Plot Label Color</label>
               </div>
               <div className="sm:col-span-2 flex items-center gap-4">
                 <div className="flex-1">
@@ -187,7 +198,7 @@ export default function AppearanceSettingsPage({ params }) {
                     onChange={(_, hex) => setSettings(prev => ({ ...prev, plotLabelColor: hex }))}
                     showText
                     format="hex"
-                    className="w-full"
+                    className="w-full h-10 border border-white/10 hover:border-[#00c8ff]/50 shadow-sm bg-[#0f111a]/50 !text-white"
                     styles={{
                       popup: { zIndex: 9999 }
                     }}
@@ -197,22 +208,27 @@ export default function AppearanceSettingsPage({ params }) {
             </div>
           </div>
 
-          <div className="pt-6 flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
-            >
-              {saving ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Save className="w-5 h-5" />
-              )}
-              {saving ? 'Saving...' : 'Save Settings'}
-            </button>
+          <div className="pt-8 flex justify-end">
+            <Can I="edit" a="appearance">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-3 bg-[#00c8ff] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {saving ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Save className="w-5 h-5" />
+                )}
+                {saving ? 'Saving...' : 'Save Settings'}
+              </button>
+            </Can>
           </div>
         </form>
       </div>
-    </div>
+      </div>
+      </div>
+      </div>
+    </AuthGuard>
   );
 }

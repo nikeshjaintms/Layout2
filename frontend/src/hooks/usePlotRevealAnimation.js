@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function usePlotRevealAnimation(svgRef, shapes, layoutRevealKey) {
+export default function usePlotRevealAnimation(svgRef, shapes, layoutRevealKey, gestureActive = false) {
   // Store a reference to running animations so we can cancel them if needed
   const activeAnimationsRef = useRef([]);
   // Track the initialized layout directly in a React ref to survive DOM reconciliations
@@ -9,14 +9,23 @@ export default function usePlotRevealAnimation(svgRef, shapes, layoutRevealKey) 
   useEffect(() => {
     if (!svgRef.current || !shapes || shapes.length === 0 || !layoutRevealKey) return;
 
+    const svgEl = svgRef.current.tagName.toLowerCase() === 'svg' ? svgRef.current : svgRef.current.querySelector('svg');
+    if (!svgEl) return;
+
+    if (gestureActive) {
+      // Hide plots and labels while gesture is active
+      const plotNodes = Array.from(svgEl.querySelectorAll('[data-plot-id]'));
+      plotNodes.forEach(node => node.style.opacity = '0');
+      const labelNodes = Array.from(svgEl.querySelectorAll('g[data-label-for]'));
+      labelNodes.forEach(node => node.style.opacity = '0');
+      return;
+    }
+
     // Use double requestAnimationFrame to ensure the DOM is fully painted
     // before we query the plot nodes and calculate geometry.
     let raf1, raf2;
     
     const initializeReveal = () => {
-      if (!svgRef.current) return;
-      const svgEl = svgRef.current.tagName.toLowerCase() === 'svg' ? svgRef.current : svgRef.current.querySelector('svg');
-      if (!svgEl) return;
 
       // Check if we already initialized this specific layout
       if (lastRevealKeyRef.current === layoutRevealKey) {
@@ -26,6 +35,11 @@ export default function usePlotRevealAnimation(svgRef, shapes, layoutRevealKey) 
       const plotNodes = Array.from(svgEl.querySelectorAll('[data-plot-id]'));
       
       if (plotNodes.length === 0) return;
+
+      // Clear the temporary hide styles
+      plotNodes.forEach(node => node.style.opacity = '');
+      const labelNodes = Array.from(svgEl.querySelectorAll('g[data-label-for]'));
+      labelNodes.forEach(node => node.style.opacity = '');
 
       // Mark this layout as initialized so we NEVER restart it due to React renders
       lastRevealKeyRef.current = layoutRevealKey;
@@ -119,6 +133,6 @@ export default function usePlotRevealAnimation(svgRef, shapes, layoutRevealKey) 
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
     };
-  }, [svgRef, shapes, layoutRevealKey]);
+  }, [svgRef, shapes, layoutRevealKey, gestureActive]);
 
 }

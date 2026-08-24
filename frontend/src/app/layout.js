@@ -12,7 +12,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: 'Architecture Overlay Studio | Layout',
+  title: {
+    template: '%s | Techomax Solution',
+    default: 'Techomax Solution',
+  },
   description: 'Enterprise architecture overlay and viewer application.',
 };
 

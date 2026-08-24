@@ -14,6 +14,18 @@ export const fetchConversions = createAsyncThunk(
   }
 );
 
+export const fetchPublicConversions = createAsyncThunk(
+  'conversions/fetchPublicConversions',
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await api.getPublicCadConversions(projectId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch public conversions');
+    }
+  }
+);
+
 export const deleteConversion = createAsyncThunk(
   'conversions/deleteConversion',
   async (id, { rejectWithValue }) => {
@@ -64,6 +76,42 @@ export const activateConversion = createAsyncThunk(
   }
 );
 
+export const uploadConversion = createAsyncThunk(
+  'conversions/uploadConversion',
+  async ({ formData, onProgress }, { rejectWithValue }) => {
+    try {
+      const response = await api.uploadCadConversion(formData, onProgress);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to upload conversion');
+    }
+  }
+);
+
+export const fetchConversionSvg = createAsyncThunk(
+  'conversions/fetchConversionSvg',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.getCadConversionSvg(id);
+      return { id, svg: response };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch conversion SVG');
+    }
+  }
+);
+
+export const saveConversionSvg = createAsyncThunk(
+  'conversions/saveConversionSvg',
+  async ({ id, formData }, { rejectWithValue }) => {
+    try {
+      const response = await api.saveCadConversionSvg(id, formData);
+      return { id, ...response };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to save conversion SVG');
+    }
+  }
+);
+
 const initialState = {
   items: [],
   loading: false,
@@ -90,6 +138,20 @@ const conversionsSlice = createSlice({
         state.items = action.payload;
       })
       .addCase(fetchConversions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Fetch Public
+      .addCase(fetchPublicConversions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPublicConversions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetchPublicConversions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -126,6 +188,19 @@ const conversionsSlice = createSlice({
           ...item,
           isActive: item.id === activatedId
         }));
+      })
+      
+      // Upload
+      .addCase(uploadConversion.fulfilled, (state, action) => {
+        state.items.push(action.payload);
+      })
+      
+      // Save SVG
+      .addCase(saveConversionSvg.fulfilled, (state, action) => {
+        const index = state.items.findIndex(c => c.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = { ...state.items[index], ...action.payload };
+        }
       });
   }
 });

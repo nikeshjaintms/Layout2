@@ -1,7 +1,7 @@
 import ProjectBoundaryWorkspace from '@/components/cad-conversion/ProjectBoundaryWorkspace';
 
 export const metadata = {
-  title: 'CAD Project Land Boundary | Layout',
+  title: 'Techomax Solutions',
 };
 
 export default async function ProjectMapPage({ params }) {

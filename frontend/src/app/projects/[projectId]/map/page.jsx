@@ -2,7 +2,7 @@ import React from 'react';
 import UserProjectMap from '@/components/user/UserProjectMap';
 
 export const metadata = {
-  title: 'Project Map | Real Estate',
+  title: 'Techomax Solution',
   description: 'View the project location and boundaries on the map.',
 };
 

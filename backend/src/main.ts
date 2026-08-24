@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,8 @@ async function bootstrap() {
     credentials: true,
     exposedHeaders: ['Content-Disposition', 'Content-Type'],
   });
+
+  app.use(cookieParser());
 
   const bodyParser = require('body-parser');
   app.use(bodyParser.json({ limit: '50mb' }));

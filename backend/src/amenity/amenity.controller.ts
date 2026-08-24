@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, BadRequestException, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, BadRequestException, Req, Res, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AmenityService } from './amenity.service';
 import { diskStorage, memoryStorage } from 'multer';
@@ -8,12 +8,17 @@ import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import DOMPurify from 'dompurify';
 import { JSDOM } from 'jsdom';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { RequirePermissions } from '../auth/decorators/require-permissions.decorator';
 
 @Controller('api/amenities')
 export class AmenityController {
   constructor(private readonly amenityService: AmenityService) {}
 
   @Post('upload')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('create-amenity')
   @UseInterceptors(FileInterceptor('icon', { storage: memoryStorage() }))
   async uploadIcon(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Icon file is required');
@@ -56,7 +61,7 @@ export class AmenityController {
       const uniqueSuffix = uuidv4() + ext;
       const filePath = path.join(uploadDir, uniqueSuffix);
 
-      const img = sharp(file.buffer).resize(128, 128, { fit: 'inside' }).ensureAlpha();
+      const img = sharp(file.buffer).resize(1024, 1024, { fit: 'inside', withoutEnlargement: true }).ensureAlpha();
       
       if (isWebp) {
         await img.webp({ quality: 100 }).toFile(filePath);
@@ -78,6 +83,8 @@ export class AmenityController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('create-amenity')
   create(@Body() createAmenityDto: any) {
     return this.amenityService.create(createAmenityDto);
   }
@@ -101,11 +108,15 @@ export class AmenityController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('edit-amenity')
   update(@Param('id') id: string, @Body() updateAmenityDto: any) {
     return this.amenityService.update(+id, updateAmenityDto);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('delete-amenity')
   remove(@Param('id') id: string) {
     return this.amenityService.remove(+id);
   }

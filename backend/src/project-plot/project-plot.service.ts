@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectPlotDto } from './dto/create-project-plot.dto';
 import { UpdateProjectPlotDto } from './dto/update-project-plot.dto';
@@ -9,7 +9,23 @@ export class ProjectPlotService {
 
   constructor(private prisma: PrismaService) {}
 
-  async createBulk(projectId: number, createProjectPlotsDto: CreateProjectPlotDto[]) {
+  async validateProjectOwnership(projectId: number, user: any) {
+    if (!user || user.role === 'ADMIN') return true;
+    const project = await this.prisma.cadProject.findUnique({ where: { id: projectId }, select: { ownerId: true } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== user.id) throw new ForbiddenException('You do not have permission to access this project');
+    return true;
+  }
+
+  async validatePlotOwnership(plotId: number, user: any) {
+    if (!user || user.role === 'ADMIN') return true;
+    const plot = await this.prisma.projectPlot.findUnique({ where: { id: plotId }, select: { projectId: true } });
+    if (!plot) throw new NotFoundException('Plot not found');
+    return this.validateProjectOwnership(plot.projectId, user);
+  }
+
+  async createBulk(projectId: number, createProjectPlotsDto: CreateProjectPlotDto[], user?: any) {
+    if (user) await this.validateProjectOwnership(projectId, user);
     this.logger.log(`[createBulk] Starting validation for ${createProjectPlotsDto.length} plots in project ${projectId}`);
     
     // 1. Validation Phase
@@ -62,7 +78,8 @@ export class ProjectPlotService {
     }
   }
 
-  create(projectId: number, createProjectPlotDto: CreateProjectPlotDto) {
+  async create(projectId: number, createProjectPlotDto: CreateProjectPlotDto, user?: any) {
+    if (user) await this.validateProjectOwnership(projectId, user);
     return this.prisma.projectPlot.create({
       data: {
         ...createProjectPlotDto,
@@ -72,7 +89,8 @@ export class ProjectPlotService {
     });
   }
 
-  async findAllByProject(projectId: number, pageStr?: string, limitStr?: string, search?: string, paginationStr?: string, statusIdStr?: string, assignment?: string, sortBy?: string, sortOrder?: string) {
+  async findAllByProject(projectId: number, pageStr?: string, limitStr?: string, search?: string, paginationStr?: string, statusIdStr?: string, assignment?: string, sortBy?: string, sortOrder?: string, user?: any) {
+    if (user) await this.validateProjectOwnership(projectId, user);
     const pagination = paginationStr === 'false' ? false : true;
     const page = Math.max(1, parseInt(pageStr || '1', 10) || 1);
     const limit = Math.max(1, parseInt(limitStr || '10', 10) || 10);
@@ -100,8 +118,10 @@ export class ProjectPlotService {
       where = { ...where, cadRegionId: null };
     }
 
-    let orderBy: any = { plotNumber: 'asc' }; // default
-    if (sortBy) {
+    let orderBy: any = undefined;
+    const isNaturalSort = (!sortBy || sortBy === 'plotNumber');
+    
+    if (!isNaturalSort) {
       const order = sortOrder === 'desc' ? 'desc' : 'asc';
       if (sortBy === 'status') {
         orderBy = { status: { name: order } };
@@ -110,29 +130,32 @@ export class ProjectPlotService {
       }
     }
 
-    if (pagination === false) {
-      const [total, data] = await Promise.all([
-        this.prisma.projectPlot.count({ where }),
-        this.prisma.projectPlot.findMany({
-          where,
-          include: { status: true },
-          orderBy,
-        })
-      ]);
-      return { data, total };
-    }
-
-    const total = await this.prisma.projectPlot.count({ where });
-    const data = await this.prisma.projectPlot.findMany({
+    // Fetch all matching records to perform natural sort in JS if needed
+    const allData = await this.prisma.projectPlot.findMany({
       where,
       include: { status: true },
-      orderBy,
-      skip,
-      take: limit,
+      orderBy: orderBy ? orderBy : undefined,
     });
+    
+    let sortedData = allData;
+    if (isNaturalSort) {
+      const orderMulti = sortOrder === 'desc' ? -1 : 1;
+      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+      sortedData.sort((a, b) => {
+        return collator.compare(a.plotNumber, b.plotNumber) * orderMulti;
+      });
+    }
+
+    const total = sortedData.length;
+
+    if (pagination === false) {
+      return { data: sortedData, total };
+    }
+
+    const paginatedData = sortedData.slice(skip, skip + limit);
 
     return {
-      data,
+      data: paginatedData,
       pagination: {
         total,
         page,
@@ -142,7 +165,8 @@ export class ProjectPlotService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: any) {
+    if (user) await this.validatePlotOwnership(id, user);
     const plot = await this.prisma.projectPlot.findUnique({
       where: { id },
       include: { status: true },
@@ -151,7 +175,8 @@ export class ProjectPlotService {
     return plot;
   }
 
-  updateAssignment(id: number, payload: any) {
+  async updateAssignment(id: number, payload: any, user?: any) {
+    if (user) await this.validatePlotOwnership(id, user);
     let dataToUpdate: any = {};
     if (payload.cadRegionId === null) {
       // Wiping assignment: clear all placement fields
@@ -185,7 +210,8 @@ export class ProjectPlotService {
     });
   }
 
-  update(id: number, updateProjectPlotDto: UpdateProjectPlotDto) {
+  async update(id: number, updateProjectPlotDto: UpdateProjectPlotDto, user?: any) {
+    if (user) await this.validatePlotOwnership(id, user);
     return this.prisma.projectPlot.update({
       where: { id },
       data: updateProjectPlotDto as any,
@@ -193,7 +219,8 @@ export class ProjectPlotService {
     });
   }
 
-  remove(id: number) {
+  async remove(id: number, user?: any) {
+    if (user) await this.validatePlotOwnership(id, user);
     return this.prisma.projectPlot.delete({ where: { id } });
   }
 }

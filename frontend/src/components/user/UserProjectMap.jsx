@@ -1,8 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import dynamic from 'next/dynamic';
-import { getCadProject, getProjectBoundaries, getCadConversions, getProjectPlots, getProjectPlotStatuses, getProjectAppearanceSettings } from '@/lib/api';
+import { fetchPublicProjectById } from '@/redux/slices/projectsSlice';
+import { fetchPublicBoundaries, fetchPublicAppearanceSettings } from '@/redux/slices/appearanceSlice';
+import { fetchPublicConversions } from '@/redux/slices/conversionsSlice';
+import { fetchPublicPlots } from '@/redux/slices/plotsSlice';
+import { fetchPublicPlotStatuses } from '@/redux/slices/plotStatusesSlice';
 import UserProjectLoading from './UserProjectLoading';
 import UserViewerToolbar from './UserViewerToolbar';
 import Link from 'next/link';
@@ -10,65 +15,64 @@ import Link from 'next/link';
 const LeafletMap = dynamic(() => import('@/components/map/LeafletMap'), { ssr: false });
 
 export default function UserProjectMap({ projectId }) {
-  const [project, setProject] = useState(null);
-  const [boundaries, setBoundaries] = useState([]);
+  const dispatch = useDispatch();
+  
+  const project = useSelector(state => state.projects.selectedProject);
+  const boundaries = useSelector(state => state.appearance.boundaries);
+  const conversions = useSelector(state => state.conversions.items);
+  const plots = useSelector(state => state.plots.items);
+  const statuses = useSelector(state => state.plotStatuses.items);
+  const appearanceSettings = useSelector(state => state.appearance.settings);
+  
+  const loading = useSelector(state => 
+    state.projects.loading || 
+    state.conversions.loading || 
+    state.plots.loading
+  );
+  const error = useSelector(state => state.projects.error);
+
   const [activeConversion, setActiveConversion] = useState(null);
-  const [plots, setPlots] = useState([]);
-  const [statuses, setStatuses] = useState([]);
-  const [appearanceSettings, setAppearanceSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [parsedBoundaries, setParsedBoundaries] = useState([]);
   
   const mapRef = useRef(null);
-  const [currentZoom, setCurrentZoom] = useState(1); // Standardized to 1 for toolbar display, Leaflet zoom is handled natively
+  const [currentZoom, setCurrentZoom] = useState(1);
   const [showPlotStatus, setShowPlotStatus] = useState(false);
   const [selectedPlotId, setSelectedPlotId] = useState(null);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const [projectData, boundsData, conversionsData, plotsData, statusesData, appearanceData] = await Promise.all([
-          getCadProject(projectId),
-          getProjectBoundaries(projectId),
-          getCadConversions(projectId),
-          getProjectPlots(projectId, { pagination: false }),
-          getProjectPlotStatuses(projectId, { pagination: false }),
-          getProjectAppearanceSettings(projectId).catch(() => null)
-        ]);
-        
-        setProject(projectData);
-        if (plotsData) setPlots(plotsData);
-        if (statusesData) setStatuses(statusesData);
-        if (appearanceData) setAppearanceSettings(appearanceData);
-        
-        if (boundsData && boundsData.length > 0) {
-          const parsedBounds = boundsData.map(b => {
-            let geo = b.geoJson;
-            if (typeof geo === 'string') {
-              try { geo = JSON.parse(geo); } catch (e) {}
-            }
-            return { ...b, geometry: geo };
-          });
-          setBoundaries(parsedBounds);
-        }
-
-        if (conversionsData && conversionsData.length > 0) {
-          const activeConversion = conversionsData.find(c => c.isActive);
-          setActiveConversion(activeConversion || null);
-        }
-      } catch (err) {
-        console.error('Failed to fetch map details:', err);
-        setError('Failed to load map details. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    
     if (projectId) {
-      fetchData();
+      dispatch(fetchPublicProjectById(projectId));
+      dispatch(fetchPublicBoundaries(projectId));
+      dispatch(fetchPublicConversions(projectId));
+      dispatch(fetchPublicPlots({ projectId, options: { pagination: false } }));
+      dispatch(fetchPublicPlotStatuses({ projectId, params: { pagination: false } }));
+      dispatch(fetchPublicAppearanceSettings(projectId));
     }
-  }, [projectId]);
+  }, [projectId, dispatch]);
+
+  useEffect(() => {
+    if (boundaries && boundaries.length > 0) {
+      const parsed = boundaries.map(b => {
+        let geo = b.geoJson;
+        if (typeof geo === 'string') {
+          try { geo = JSON.parse(geo); } catch (e) {}
+        }
+        return { ...b, geometry: geo };
+      });
+      setParsedBoundaries(parsed);
+    } else {
+      setParsedBoundaries([]);
+    }
+  }, [boundaries]);
+
+  useEffect(() => {
+    if (conversions && conversions.length > 0) {
+      const active = conversions.find(c => c.isActive);
+      setActiveConversion(active || null);
+    } else {
+      setActiveConversion(null);
+    }
+  }, [conversions]);
 
   const zoomIn = () => {
     if (mapRef.current?.map) {
@@ -134,15 +138,15 @@ export default function UserProjectMap({ projectId }) {
       />
 
         <div className="flex-1 w-full h-full">
-        {boundaries.length > 0 ? (
+        {parsedBoundaries.length > 0 ? (
           <LeafletMap
             ref={mapRef}
             mapType="hybrid"
             drawMode={null} 
             drawingBoundary={false}
-            boundaries={boundaries}
+            boundaries={parsedBoundaries}
             activeBoundaryId={null}
-            initialBounds={boundaries[0]?.latMin ? [[boundaries[0].latMin, boundaries[0].lngMin], [boundaries[0].latMax, boundaries[0].lngMax]] : null}
+            initialBounds={parsedBoundaries[0]?.latMin ? [[parsedBoundaries[0].latMin, parsedBoundaries[0].lngMin], [parsedBoundaries[0].latMax, parsedBoundaries[0].lngMax]] : null}
             staticPreview={true}
             layouts={activeConversion ? [activeConversion] : []}
             plots={plots}
@@ -152,6 +156,7 @@ export default function UserProjectMap({ projectId }) {
             selectedPlotId={selectedPlotId}
             onPlotSelect={setSelectedPlotId}
             appearanceSettings={appearanceSettings}
+            enableZoomDimming={true}
             className="w-full h-full"
           />
         ) : (

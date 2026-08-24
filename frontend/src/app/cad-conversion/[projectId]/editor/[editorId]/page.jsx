@@ -1,7 +1,7 @@
 import CadEditorWorkspace from '@/components/cad-conversion/editor/CadEditorWorkspace';
 
 export const metadata = {
-  title: 'CAD Editor | Layout',
+  title: 'Techomax Solution',
 };
 
 export default async function CadProjectEditorPage({ params }) {

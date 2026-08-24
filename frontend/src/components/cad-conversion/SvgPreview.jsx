@@ -62,10 +62,10 @@ export default function SvgPreview({ conversion, conversions = [], projectId }) 
                 }
               }}
               disabled={!targetConversionId}
-              className={`px-4 py-1.5 text-sm font-medium rounded-full shadow-lg flex items-center gap-1.5 transition-all
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shrink-0
                 ${targetConversionId 
-                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white hover:scale-105 hover:shadow-indigo-500/25' 
-                  : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700'}`}
+                  ? 'bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)]' 
+                  : 'bg-zinc-800/50 text-zinc-500 cursor-not-allowed border border-zinc-700/50'}`}
               title={!targetConversionId ? "This conversion failed or is still processing" : ""}
             >
               {!targetConversionId ? 'No Editor Available' : 'Continue Editing'}

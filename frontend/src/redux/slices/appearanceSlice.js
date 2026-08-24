@@ -14,6 +14,18 @@ export const fetchAppearanceSettings = createAsyncThunk(
   }
 );
 
+export const fetchPublicAppearanceSettings = createAsyncThunk(
+  'appearance/fetchPublicAppearanceSettings',
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await api.getPublicProjectAppearanceSettings(projectId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch public appearance settings');
+    }
+  }
+);
+
 export const updateAppearanceSettings = createAsyncThunk(
   'appearance/updateAppearanceSettings',
   async ({ projectId, data }, { rejectWithValue }) => {
@@ -49,6 +61,18 @@ export const fetchBoundaries = createAsyncThunk(
       return response;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch boundaries');
+    }
+  }
+);
+
+export const fetchPublicBoundaries = createAsyncThunk(
+  'appearance/fetchPublicBoundaries',
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await api.getPublicProjectBoundaries(projectId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch public boundaries');
     }
   }
 );
@@ -123,6 +147,22 @@ const appearanceSlice = createSlice({
         }
       })
 
+      // Fetch Public Settings
+      .addCase(fetchPublicAppearanceSettings.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPublicAppearanceSettings.fulfilled, (state, action) => {
+        state.loading = false;
+        state.settings = action.payload;
+      })
+      .addCase(fetchPublicAppearanceSettings.rejected, (state, action) => {
+        state.loading = false;
+        if (!action.payload?.includes('404')) {
+          state.error = action.payload;
+        }
+      })
+
       // Update Settings
       .addCase(updateAppearanceSettings.fulfilled, (state, action) => {
         state.settings = action.payload;
@@ -135,6 +175,11 @@ const appearanceSlice = createSlice({
 
       // Fetch Boundaries
       .addCase(fetchBoundaries.fulfilled, (state, action) => {
+        state.boundaries = action.payload;
+      })
+
+      // Fetch Public Boundaries
+      .addCase(fetchPublicBoundaries.fulfilled, (state, action) => {
         state.boundaries = action.payload;
       })
 

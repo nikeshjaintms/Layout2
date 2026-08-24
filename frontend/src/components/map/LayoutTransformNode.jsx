@@ -9,32 +9,35 @@ import PlotLabelsOverlay from '../shared/appearance/PlotLabelsOverlay';
 // This is used to remove the baked-in composite-plot-labels / composite-amenities
 // groups so they are never rendered — we replace them with live React overlays.
 function stripGroupById(svgString, id) {
-  // Match <g ... id="<id>"...>...</g> including nested elements.
-  // We do a bracket-depth scan so we don't need a full XML parser.
+  let result = svgString;
   const openTag = new RegExp(`<g\\b[^>]*\\bid="${id}"[^>]*>`, 'i');
-  const match = openTag.exec(svgString);
-  if (!match) return svgString;
+  
+  while (true) {
+    const match = openTag.exec(result);
+    if (!match) break;
 
-  const start = match.index;
-  let depth = 1;
-  let i = start + match[0].length;
+    const start = match.index;
+    let depth = 1;
+    let i = start + match[0].length;
 
-  while (i < svgString.length && depth > 0) {
-    const nextOpen  = svgString.indexOf('<g', i);
-    const nextClose = svgString.indexOf('</g>', i);
+    while (i < result.length && depth > 0) {
+      const nextOpen  = result.indexOf('<g', i);
+      const nextClose = result.indexOf('</g>', i);
 
-    if (nextClose === -1) break; // malformed — bail out
+      if (nextClose === -1) break; // malformed — bail out
 
-    if (nextOpen !== -1 && nextOpen < nextClose) {
-      depth++;
-      i = nextOpen + 2;
-    } else {
-      depth--;
-      i = nextClose + 4;
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        i = nextOpen + 2;
+      } else {
+        depth--;
+        i = nextClose + 4;
+      }
     }
-  }
 
-  return svgString.slice(0, start) + svgString.slice(i);
+    result = result.slice(0, start) + result.slice(i);
+  }
+  return result;
 }
 
 export default function LayoutTransformNode({ 
@@ -121,7 +124,7 @@ export default function LayoutTransformNode({
   }, [layout.mapLatitude, layout.mapLongitude, layout.mapScale, layout.mapRotation]);
 
   useEffect(() => {
-    const url = `${BASE_URL}/api/cad-conversion/${layout.id}/composite-svg?t=${layout.updatedAt || Date.now()}`;
+    const url = `${BASE_URL}/api/cad-conversion/${layout.id}/composite-svg?t=${Date.now()}`;
     fetch(url)
       .then(r => r.json())
       .then(data => {
@@ -175,7 +178,7 @@ export default function LayoutTransformNode({
         }
       })
       .catch(console.error);
-  }, [layout.id, layout.updatedAt]);
+  }, [layout.id]); // Run once on mount (or layout change), bust cache aggressively
 
   // Create Leaflet Custom Layer
   useEffect(() => {
@@ -305,6 +308,23 @@ export default function LayoutTransformNode({
     }
   }, [map, imgSize, interactionPolygon, layout.mapScale]);
 
+  // Hide duplicate CAD text that matches assigned plot numbers
+  useEffect(() => {
+    if (svgContainerRef.current && plots && plots.length > 0) {
+      const plotNumbers = new Set(plots.map(p => String(p.plotNumber).trim().toLowerCase()));
+      const textEls = svgContainerRef.current.querySelectorAll('text, tspan');
+      textEls.forEach(el => {
+        if (el.getAttribute('data-custom-color') === 'true') return;
+        const txt = (el.textContent || '').trim().toLowerCase();
+        if (txt && plotNumbers.has(txt)) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = '';
+        }
+      });
+    }
+  }, [svgRaw, plots]);
+
   // Math Helper
   const rotatePoint = (pt, angleDeg) => {
     const rad = (angleDeg * Math.PI) / 180;
@@ -424,6 +444,7 @@ export default function LayoutTransformNode({
       isTransforming.current = false;
       document.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerUp);
       
       onTransformChange({
         mapScale: stateRef.current.scale,
@@ -434,8 +455,9 @@ export default function LayoutTransformNode({
       onTransformEnd();
     };
 
-    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointermove', onPointerMove, { passive: false });
     document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
   };
 
   if (!imgSize || !svgUrl || !interactionPolygon || !portalNode) {
@@ -530,32 +552,6 @@ export default function LayoutTransformNode({
           stroke: var(--layout-line-color) !important;
         }
 
-        ${selectedPlotId ? `
-        .cad-viewer-global-styles svg path,
-        .cad-viewer-global-styles svg polygon,
-        .cad-viewer-global-styles svg polyline,
-        .cad-viewer-global-styles svg rect,
-        .cad-viewer-global-styles svg circle,
-        .cad-viewer-global-styles svg ellipse {
-          opacity: 0.25;
-          transition: opacity 200ms ease;
-        }
-        
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] {
-          opacity: 1 !important;
-          transition: opacity 200ms ease;
-        }
-
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] path,
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] polygon,
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] polyline,
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] rect,
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] circle,
-        .cad-viewer-global-styles svg [data-plot-id="${selectedPlotId}"] ellipse {
-          opacity: 1 !important;
-          transition: opacity 200ms ease;
-        }
-        ` : `
         .cad-viewer-global-styles svg path,
         .cad-viewer-global-styles svg polygon,
         .cad-viewer-global-styles svg polyline,
@@ -564,7 +560,6 @@ export default function LayoutTransformNode({
         .cad-viewer-global-styles svg ellipse {
           transition: opacity 200ms ease;
         }
-        `}
 
         .cad-viewer-global-styles svg [data-plot-id] {
           pointer-events: auto;
@@ -603,6 +598,10 @@ export default function LayoutTransformNode({
           />
         </svg>
       )}
+      {/* Hide duplicate CAD text that matches assigned plot numbers */}
+      <style>{`
+        /* This hides CAD text when it has a matching PlotLabelsOverlay */
+      `}</style>
       <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
         <polygon 
           points={polygonPoints} 
@@ -610,7 +609,7 @@ export default function LayoutTransformNode({
           stroke={isSelected ? "#3b82f6" : "transparent"} 
           strokeWidth={isSelected ? 'calc(1.5 / var(--combined-scale))' : 0}
           strokeLinejoin="round"
-          style={{ pointerEvents: readOnly ? 'none' : 'auto', cursor: isSelected ? 'move' : 'pointer' }}
+          style={{ pointerEvents: readOnly ? 'none' : 'auto', cursor: isSelected ? 'move' : 'pointer', touchAction: isSelected ? 'none' : 'auto' }}
           onClick={(e) => { if (readOnly) return; e.stopPropagation(); if (!isSelected && onSelect) onSelect(); }}
           onPointerDown={(e) => { if (readOnly) return; handlePointerDown(e, 'move', null); }}
         />
@@ -655,7 +654,8 @@ export default function LayoutTransformNode({
                 width: '16px',
                 height: '16px',
                 transform: `translate(-50%, -50%)`, 
-                pointerEvents: 'auto' 
+                pointerEvents: 'auto',
+                touchAction: 'none'
               }}
               onPointerDown={(e) => handlePointerDown(e, 'rotate', null)}
               title="Rotate"
@@ -683,7 +683,7 @@ function Handle({ x, y, onDown }) {
   return (
     <div 
       className="absolute bg-white border-2 border-[#3b82f6] shadow-sm pointer-events-auto"
-      style={{ left: `${x}px`, top: `${y}px`, width: '10px', height: '10px', transform: `translate(-50%, -50%) scale(calc(1 / var(--combined-scale)))`, cursor: 'crosshair' }}
+      style={{ left: `${x}px`, top: `${y}px`, width: '10px', height: '10px', transform: `translate(-50%, -50%) scale(calc(1 / var(--combined-scale)))`, cursor: 'crosshair', touchAction: 'none' }}
       onPointerDown={onDown}
     ></div>
   );

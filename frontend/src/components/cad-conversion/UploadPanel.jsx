@@ -1,11 +1,13 @@
 import React, { useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { uploadConversion } from '@/redux/slices/conversionsSlice';
 import { UploadCloud, Loader2 } from 'lucide-react';
-
-import { BASE_URL } from '@/lib/api';
 
 export default function UploadPanel({ projectId, onUploadStart, onUploadError }) {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const dispatch = useDispatch();
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -36,19 +38,9 @@ export default function UploadPanel({ projectId, onUploadStart, onUploadError })
     }
 
     try {
-      const res = await fetch(`${BASE_URL}/api/cad-conversion/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Upload failed');
-      }
-      
-      await res.json(); // Wait for json parsing to finish
+      await dispatch(uploadConversion({ formData })).unwrap();
     } catch (err) {
-      onUploadError(err.message);
+      onUploadError(err || 'Upload failed');
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
       setIsUploading(false);
@@ -67,14 +59,14 @@ export default function UploadPanel({ projectId, onUploadStart, onUploadError })
       <button 
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
-        className="w-full h-24 border-2 border-dashed border-zinc-700 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-indigo-500 hover:bg-indigo-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-zinc-400 hover:text-indigo-400"
+        className="w-full h-24 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#00c8ff]/50 hover:bg-[#00c8ff]/10 hover:shadow-[0_0_15px_rgba(0,200,255,0.1)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-[#8ba0b8] hover:text-[#00c8ff] group"
       >
         {isUploading ? (
-          <Loader2 size={24} className="animate-spin text-indigo-500" />
+          <Loader2 size={24} className="animate-spin text-[#00c8ff]" />
         ) : (
-          <UploadCloud size={24} />
+          <UploadCloud size={24} className="group-hover:-translate-y-1 transition-transform duration-300" />
         )}
-        <span className="text-sm font-medium">
+        <span className="text-xs font-bold uppercase tracking-wider">
           {isUploading ? 'Uploading...' : 'Upload DWG/DXF'}
         </span>
       </button>

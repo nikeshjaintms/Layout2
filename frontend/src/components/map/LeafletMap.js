@@ -35,7 +35,8 @@ const LeafletMap = forwardRef(function LeafletMap(
     onDrawComplete, onSelectBoundary, onMoveComplete,
     initialBounds, staticPreview, onLayoutDrop,
     layouts, onLayoutUpdate, plots, statuses, showPlotStatus,
-    projectConfig, selectedPlotId, onPlotSelect, appearanceSettings
+    projectConfig, selectedPlotId, onPlotSelect, appearanceSettings,
+    onMapReady, onLayoutSelect, enableZoomDimming
   },
   ref,
 ) {
@@ -57,13 +58,18 @@ const LeafletMap = forwardRef(function LeafletMap(
   const [searching, setSearching] = useState(false);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
 
-  const [selectedLayoutId, setSelectedLayoutId] = useState(null);
+  const [selectedLayoutId, _setSelectedLayoutId] = useState(null);
+  const setSelectedLayoutId = (id) => {
+    _setSelectedLayoutId(id);
+    if (onLayoutSelect) onLayoutSelect(id);
+  };
+
   const [draftTransforms, setDraftTransforms] = useState({});
-  const [currentZoom, setCurrentZoom] = useState(18);
-  const baseZoom = 18;
+  const [currentZoom, setCurrentZoom] = useState(null);
+  const [baseZoom, setBaseZoom] = useState(null);
   const [portalTargets, setPortalTargets] = useState({});
 
-  // ── Expose fitBounds imperatively ──────────────────────────────────────────
+  // ── Expose map methods imperatively ──────────────────────────────────────────
   useImperativeHandle(ref, () => ({
     fitToBounds() {
       const map = mapRef.current;
@@ -75,6 +81,12 @@ const LeafletMap = forwardRef(function LeafletMap(
         map.fitBounds(group.getBounds().pad(0.2));
       } catch { /* empty */ }
     },
+    getCenter() {
+      return mapRef.current?.getCenter();
+    },
+    setView(latlng, zoom) {
+      return mapRef.current?.setView(latlng, zoom);
+    }
   }));
 
   // ── Init map ───────────────────────────────────────────────────────────────
@@ -106,8 +118,19 @@ const LeafletMap = forwardRef(function LeafletMap(
       const map = Lf.map(containerRef.current, mapOpts);
       if (initialBounds) {
         map.fitBounds(initialBounds);
+        const z = map.getZoom();
+        setBaseZoom(z);
+        setCurrentZoom(z);
+      } else {
+        setBaseZoom(5);
+        setCurrentZoom(5);
       }
 
+      if (onMapReady) {
+        onMapReady(map);
+      }
+
+      mapRef.current = map;
       if (!staticPreview) {
         Lf.control.zoom({ position: 'bottomright' }).addTo(map);
       }
@@ -122,10 +145,25 @@ const LeafletMap = forwardRef(function LeafletMap(
       if (label) labelTileRef.current = label.addTo(map);
 
       mapRef.current = map;
+
+      // Handle resize events (e.g., when sidebar collapses)
+      const observer = new ResizeObserver(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize();
+        }
+      });
+      observer.observe(containerRef.current);
+      mapRef.current._resizeObserver = observer;
     });
 
     return () => {
-      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+      if (mapRef.current) { 
+        if (mapRef.current._resizeObserver) {
+          mapRef.current._resizeObserver.disconnect();
+        }
+        mapRef.current.remove(); 
+        mapRef.current = null; 
+      }
       if (containerRef.current) delete containerRef.current._leaflet_id;
     };
   }, []);
@@ -253,32 +291,38 @@ const LeafletMap = forwardRef(function LeafletMap(
       midMarkers = [];
 
       latLngs.forEach((ll, i) => {
-        // Main vertex marker
-        const m = Lf.circleMarker(ll, {
-          radius: 6, color: '#fff', fillColor: color,
-          fillOpacity: 1, weight: 2, className: 'boundary-vertex',
-        }).addTo(map);
-
-        m.on('mousedown', () => {
-          map.dragging.disable();
-          function onMove(e) { 
-            latLngs[i] = e.latlng;
-            m.setLatLng(e.latlng); 
-            poly.setLatLngs(latLngs);
-            refreshMidMarkers();
-          }
-          function onUp() {
-            map.dragging.enable();
-            map.off('mousemove', onMove);
-            map.off('mouseup',   onUp);
-          }
-          map.on('mousemove', onMove);
-          map.on('mouseup',   onUp);
+        // Main vertex marker using a DivIcon and native draggable for touch/mouse support
+        const icon = Lf.divIcon({
+          className: 'boundary-vertex-icon',
+          html: `<div style="width: 14px; height: 14px; background: ${color}; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 3px rgba(0,0,0,0.5); cursor: grab;"></div>`,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
         });
 
-        // Double click to delete vertex
-        m.on('dblclick', (e) => {
+        const m = Lf.marker(ll, {
+          icon: icon,
+          draggable: true,
+          zIndexOffset: 1000
+        }).addTo(map);
+
+        m.on('dragstart', () => {
+          map.dragging.disable();
+        });
+        
+        m.on('drag', () => {
+          latLngs[i] = m.getLatLng();
+          poly.setLatLngs(latLngs);
+          refreshMidMarkers();
+        });
+        
+        m.on('dragend', () => {
+          map.dragging.enable();
+        });
+
+        // Double click or Long Press (contextmenu) to delete vertex
+        m.on('dblclick contextmenu', (e) => {
           e.originalEvent?.stopPropagation();
+          e.originalEvent?.preventDefault();
           if (latLngs.length <= 3) return; // Cannot have less than 3 points
           latLngs.splice(i, 1);
           poly.setLatLngs(latLngs);
@@ -301,18 +345,24 @@ const LeafletMap = forwardRef(function LeafletMap(
         const p2 = latLngs[(i + 1) % latLngs.length];
         const mid = Lf.latLng((p1.lat + p2.lat) / 2, (p1.lng + p2.lng) / 2);
 
-        const mMid = Lf.circleMarker(mid, {
-          radius: 5, color: '#fff', fillColor: color,
-          fillOpacity: 0.5, weight: 1, className: 'boundary-vertex-mid',
+        const midIcon = Lf.divIcon({
+          className: 'boundary-vertex-mid-icon',
+          html: `<div style="width: 12px; height: 12px; background: ${color}; border: 1.5px solid #fff; border-radius: 50%; opacity: 0.6; box-shadow: 0 0 2px rgba(0,0,0,0.5); cursor: pointer;"></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+
+        const mMid = Lf.marker(mid, {
+          icon: midIcon,
+          zIndexOffset: 500
         }).addTo(map);
 
-        mMid.on('mousedown', () => {
+        mMid.on('mousedown touchstart', (e) => {
+          e.originalEvent?.stopPropagation();
           // Convert midpoint to real vertex
           latLngs.splice(i + 1, 0, mid);
           poly.setLatLngs(latLngs);
           buildMarkers();
-          // The newly created marker at i+1 doesn't automatically start dragging, 
-          // user will have to click and drag it.
         });
         midMarkers.push(mMid);
       }
@@ -570,30 +620,42 @@ const LeafletMap = forwardRef(function LeafletMap(
 
       {/* Search bar */}
       {!staticPreview && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[9000]">
-          <form onSubmit={handleSearch} className="flex gap-1.5">
-            <div className="relative">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
-                   width="13" height="13" viewBox="0 0 24 24" fill="none"
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[9000] w-[calc(100%-32px)] sm:w-auto max-w-md pointer-events-none">
+          <form onSubmit={handleSearch} className="flex gap-1.5 sm:gap-2 p-1 sm:p-1.5 bg-[#0f111a]/80 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl w-full pointer-events-auto">
+            <div className="relative flex-1">
+              <svg className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-[#8ba0b8] pointer-events-none shrink-0"
+                   width="12" height="12" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search place, city or lat,lng…"
-                className="w-80 bg-zinc-950/95 backdrop-blur border border-zinc-700 rounded-xl
-                           pl-9 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-600
-                           focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="Search place, city..."
+                className="w-full sm:w-80 bg-[#1d2440]/50 border border-white/5 rounded-lg
+                           pl-7 sm:pl-9 pr-2 sm:pr-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white placeholder-[#8ba0b8]/60
+                           focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_15px_rgba(0,200,255,0.1)] transition-all"
               />
             </div>
             <button type="submit" disabled={searching}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm
-                               font-semibold rounded-xl transition-colors disabled:opacity-50">
-              {searching ? '…' : 'Go'}
+                    className="px-3 sm:px-5 py-1.5 sm:py-2 bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 text-[10px] sm:text-xs uppercase tracking-wider
+                               font-bold rounded-lg transition-all shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_15px_rgba(0,200,255,0.3)] disabled:opacity-50 shrink-0">
+              {searching ? '...' : 'Go'}
             </button>
           </form>
         </div>
+      )}
+
+      {enableZoomDimming && (
+        <style>{`
+          .leaflet-tile-pane {
+            filter: brightness(${
+              (currentZoom === null || baseZoom === null) ? 0.15 :
+              currentZoom < baseZoom ? 1.0 : 0.15
+            });
+            transition: filter 300ms ease;
+          }
+        `}</style>
       )}
 
       <div 

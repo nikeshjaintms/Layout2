@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlotDetectionService } from './plot-detection.service';
 import * as fs from 'fs';
@@ -11,7 +11,27 @@ export class CadConversionService {
     private plotDetection: PlotDetectionService,
   ) { }
 
-  async create(data: any) {
+  async validateConversionOwnership(id: number, user: any) {
+    if (!user || user.role === 'ADMIN') return true;
+    const conversion = await this.prisma.cadConversion.findUnique({ where: { id }, select: { projectId: true } });
+    if (!conversion || !conversion.projectId) throw new NotFoundException('Conversion or Project not found');
+    const project = await this.prisma.cadProject.findUnique({ where: { id: conversion.projectId }, select: { ownerId: true } });
+    if (project?.ownerId !== user.id) throw new ForbiddenException('You do not have permission to access this layout');
+    return true;
+  }
+
+  async validateProjectOwnership(projectId: number, user: any) {
+    if (!user || user.role === 'ADMIN') return true;
+    const project = await this.prisma.cadProject.findUnique({ where: { id: projectId }, select: { ownerId: true } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== user.id) throw new ForbiddenException('You do not have permission to access this project');
+    return true;
+  }
+
+  async create(data: any, user?: any) {
+    if (data.projectId && user) {
+      await this.validateProjectOwnership(data.projectId, user);
+    }
     if (data.projectId) {
       const existingActive = await this.prisma.cadConversion.findFirst({
         where: { projectId: data.projectId, isActive: true }
@@ -25,31 +45,53 @@ export class CadConversionService {
     return this.prisma.cadConversion.create({ data });
   }
 
-  async findAll(projectId?: number) {
+  async findAll(projectId?: number, user?: any) {
+    if (projectId && user) await this.validateProjectOwnership(projectId, user);
+    
+    // If no projectId, and user is CLIENT, only return their projects' conversions
+    const where: any = {};
+    if (projectId) where.projectId = projectId;
+    if (!projectId && user && user.role === 'CLIENT') {
+      where.project = { ownerId: user.id };
+    }
+
     return this.prisma.cadConversion.findMany({
-      where: projectId ? { projectId } : undefined,
+      where,
       orderBy: { createdAt: 'desc' }
     });
   }
 
-  async findOne(id: number) {
+  async findPublic(projectId?: number) {
+    const where: any = {};
+    if (projectId) where.projectId = projectId;
+    return this.prisma.cadConversion.findMany({
+      where,
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async findOne(id: number, user?: any) {
+    if (user) await this.validateConversionOwnership(id, user);
     const conversion = await this.prisma.cadConversion.findUnique({ where: { id } });
     if (!conversion) throw new NotFoundException('Conversion not found');
     return conversion;
   }
 
-  async update(id: number, data: any) {
+  async update(id: number, data: any, user?: any) {
+    if (user) await this.validateConversionOwnership(id, user);
     return this.prisma.cadConversion.update({
       where: { id },
       data
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, user?: any) {
+    if (user) await this.validateConversionOwnership(id, user);
     return this.prisma.cadConversion.delete({ where: { id } });
   }
 
-  async activateLayout(id: number) {
+  async activateLayout(id: number, user?: any) {
+    if (user) await this.validateConversionOwnership(id, user);
     return this.prisma.$transaction(async (prisma) => {
       // 1. Find the layout
       const layout = await prisma.cadConversion.findUnique({ where: { id } });
@@ -75,7 +117,8 @@ export class CadConversionService {
    * pass first if the file was produced before the detection engine existed.
    * The normalized SVG is written back to disk so subsequent loads are instant.
    */
-  async getEditorSvg(id: number): Promise<string> {
+  async getEditorSvg(id: number, user?: any): Promise<string> {
+    if (user) await this.validateConversionOwnership(id, user);
     const conversion = await this.prisma.cadConversion.findUnique({ where: { id } });
     if (!conversion) throw new NotFoundException('Conversion not found');
     if (!conversion.svgFilePath || !fs.existsSync(conversion.svgFilePath)) {
@@ -95,7 +138,8 @@ export class CadConversionService {
   // Builds an SVG that contains the base drawing PLUS all runtime overlays
   // (plot status colors, plot number labels, amenity icons) so the map
   // renders exactly what the editor shows.
-  async getCompositeSvg(id: number): Promise<{ svg: string; interactionPolygon?: any; geometry?: any }> {
+  async getCompositeSvg(id: number, user?: any): Promise<{ svg: string; interactionPolygon?: any; geometry?: any }> {
+    if (user) await this.validateConversionOwnership(id, user);
     const conversion = await this.prisma.cadConversion.findUnique({ where: { id } });
     if (!conversion) throw new NotFoundException('Conversion not found');
     if (!conversion.svgFilePath || !fs.existsSync(conversion.svgFilePath)) {

@@ -1,13 +1,17 @@
-export const BASE_URL = 'http://localhost:5000';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
-async function request(path, options = {}) {
+export async function authFetch(path, options = {}) {
+  const isFormData = typeof window !== 'undefined' && options.body instanceof FormData;
+  const headers = {
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
+    ...(options.headers || {}),
+  };
+
   const res = await fetch(`${BASE_URL}${path}`, {
     cache: 'no-store',
+    credentials: 'include', // Automatically send cookies
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers,
   });
 
   if (!res.ok) {
@@ -19,12 +23,83 @@ async function request(path, options = {}) {
     } catch {
       // ignore JSON parse errors
     }
+
     const err = new Error(message);
     err.response = body;
+    err.status = res.status;
     throw err;
   }
 
-  return res.json();
+
+  return res;
+}
+
+export async function apiCall(path, options = {}) {
+  const res = await authFetch(path, options);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function request(path, options = {}) {
+  return apiCall(path, options);
+}
+
+// ─── Authentication ─────────────────────────────────────────────────────────────
+
+export async function loginUser(email, password) {
+  return request('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function logoutUser() {
+  return request('/auth/logout', { method: 'POST' });
+}
+
+export async function getProfile() {
+  return request('/auth/me');
+}
+
+export async function changePassword(currentPassword, newPassword) {
+  return request('/auth/change-password', {
+    method: 'PATCH',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+// ─── Admin Users ──────────────────────────────────────────────────────────────
+
+export async function getAdminUsers(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page);
+  if (params.limit) query.append('limit', params.limit);
+  if (params.search) query.append('search', params.search);
+
+  const queryString = query.toString();
+  return request(`/admin/users${queryString ? `?${queryString}` : ''}`);
+}
+
+export async function getAdminUser(id) {
+  return request(`/admin/users/${id}`);
+}
+
+export async function createAdminUser(data) {
+  return request('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateAdminUser(id, data) {
+  return request(`/admin/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteAdminUser(id) {
+  return request(`/admin/users/${id}`, { method: 'DELETE' });
 }
 
 // ─── CAD Projects ─────────────────────────────────────────────────────────────
@@ -39,6 +114,10 @@ export async function getPublicProjects() {
 
 export async function getCadProject(id) {
   return request(`/cad-projects/${id}`);
+}
+
+export async function getPublicProject(id) {
+  return request(`/cad-projects/public/${id}`);
 }
 
 export async function createCadProject(body) {
@@ -65,6 +144,11 @@ export async function getCadConversions(projectId) {
   return request(`/api/cad-conversion${query}`);
 }
 
+export async function getPublicCadConversions(projectId) {
+  const query = projectId ? `?projectId=${projectId}` : '';
+  return request(`/api/cad-conversion/public${query}`);
+}
+
 export async function deleteCadConversion(id) {
   return request(`/api/cad-conversion/${id}`, { method: 'DELETE' });
 }
@@ -87,6 +171,63 @@ export async function activateCadConversion(id) {
   return request(`/api/cad-conversion/${id}/activate`, {
     method: 'PATCH'
   });
+}
+
+export async function uploadCadConversion(formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.withCredentials = true; // Automatically send cookies
+    xhr.open('POST', `${BASE_URL}/api/cad-conversion/upload`);
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded * 100) / e.total);
+          onProgress(percent);
+        }
+      });
+    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch (err) {
+          resolve(xhr.responseText);
+        }
+      } else {
+        let msg = `Upload failed: ${xhr.status}`;
+        try { msg = JSON.parse(xhr.responseText).message || msg; } catch (e) { }
+        reject(new Error(msg));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(formData);
+  });
+}
+
+export async function getCadConversion(id) {
+  return request(`/api/cad-conversion/${id}`);
+}
+
+export async function getPublicCadConversion(id) {
+  return request(`/api/cad-conversion/public/${id}`);
+}
+
+export async function getCadConversionSvg(id) {
+  const res = await authFetch(`/api/cad-conversion/${id}/svg`);
+  return res.text();
+}
+
+export async function getPublicCadConversionSvg(id) {
+  const res = await authFetch(`/api/cad-conversion/public/${id}/svg`);
+  return res.text();
+}
+
+export async function saveCadConversionSvg(id, formData) {
+  const res = await authFetch(`/api/cad-conversion/${id}`, {
+    method: 'PATCH',
+    body: formData,
+  });
+  return res.json();
 }
 
 // ─── Plot Statuses (DEPRECATED: see Project Plot Statuses below) ─────────────
@@ -112,8 +253,27 @@ export async function getProjectPlots(projectId, options = {}) {
   return request(url).then(res => options.pagination === false && res.data ? res.data : res);
 }
 
-export async function getProjectPlot(plotId) {
-  return request(`/api/projects/ignore/plots/${plotId}`);
+export async function getPublicProjectPlots(projectId, options = {}) {
+  const params = new URLSearchParams();
+  if (options.pagination === false) {
+    params.append('pagination', 'false');
+  } else {
+    if (options.page) params.append('page', options.page);
+    if (options.limit) params.append('limit', options.limit);
+  }
+  if (options.search) params.append('search', options.search);
+  if (options.statusId) params.append('statusId', options.statusId);
+  if (options.assignment) params.append('assignment', options.assignment);
+  if (options.sortBy) params.append('sortBy', options.sortBy);
+  if (options.sortOrder) params.append('sortOrder', options.sortOrder);
+
+  const queryString = params.toString();
+  const url = `/api/projects/${projectId}/plots/public${queryString ? `?${queryString}` : ''}`;
+  return request(url).then(res => options.pagination === false && res.data ? res.data : res);
+}
+
+export async function getProjectPlot(projectId, plotId) {
+  return request(`/api/projects/${projectId}/plots/${plotId}`);
 }
 
 export async function createProjectPlot(projectId, body) {
@@ -189,9 +349,9 @@ export async function uploadAmenityIcon(file) {
   const formData = new FormData();
   formData.append('icon', file);
 
-  const res = await fetch(`${BASE_URL}/api/amenities/upload`, {
+  const res = await authFetch(`/api/amenities/upload`, {
     method: 'POST',
-    body: formData, // Fetch automatically sets correct multipart boundary
+    body: formData,
   });
 
   if (!res.ok) throw new Error('Upload failed');
@@ -203,6 +363,12 @@ export async function getAmenityPlacements(conversionId) {
   let url = '/api/amenity-placement';
   if (conversionId) url += `?conversionId=${conversionId}`;
   return request(url);
+}
+
+export async function getPublicAmenityPlacements(conversionId) {
+  let url = '/api/amenity-placement/public';
+  if (conversionId) url += `?conversionId=${conversionId}`;
+  return request(url).then(res => res.data || res);
 }
 
 export async function createAmenityPlacement(body) {
@@ -239,6 +405,21 @@ export async function getProjectPlotStatuses(projectId, params = {}) {
   return request(url).then(res => params.pagination === false && res.data ? res.data : res);
 }
 
+export async function getPublicProjectPlotStatuses(projectId, params = {}) {
+  const query = new URLSearchParams();
+  if (params.pagination === false) {
+    query.append('pagination', 'false');
+  } else {
+    if (params.page) query.append('page', params.page);
+    if (params.limit) query.append('limit', params.limit);
+  }
+  if (params.search) query.append('search', params.search);
+  const queryString = query.toString();
+
+  const url = `/api/plot-statuses/public/project/${projectId}${queryString ? `?${queryString}` : ''}`;
+  return request(url).then(res => params.pagination === false && res.data ? res.data : res);
+}
+
 export async function getPlotStatus(id) {
   return request(`/api/plot-statuses/${id}`);
 }
@@ -269,6 +450,10 @@ export async function getProjectBoundaries(projectId) {
   return request(`/api/projects/${projectId}/boundaries`);
 }
 
+export async function getPublicProjectBoundaries(projectId) {
+  return request(`/api/projects/public/${projectId}/boundaries`);
+}
+
 export async function createProjectBoundary(projectId, data) {
   return request(`/api/projects/${projectId}/boundaries`, {
     method: 'POST',
@@ -291,6 +476,10 @@ export async function deleteProjectBoundary(id) {
 
 export async function getProjectAppearanceSettings(projectId) {
   return request(`/cad-projects/${projectId}/appearance-settings`);
+}
+
+export async function getPublicProjectAppearanceSettings(projectId) {
+  return request(`/cad-projects/${projectId}/appearance-settings/public`);
 }
 
 export async function createProjectAppearanceSettings(projectId, data) {

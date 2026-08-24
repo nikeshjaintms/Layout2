@@ -84,8 +84,8 @@ export default function CadConversionStudio({ projectId }) {
       addLog(`Uploading new file for conversion ${id}...`, 'info');
       const formData = new FormData();
       formData.append('file', file);
-      const { BASE_URL } = await import('@/lib/api');
-      const res = await fetch(`${BASE_URL}/api/cad-conversion/${id}/upload`, {
+      const { authFetch } = await import('@/lib/api');
+      const res = await authFetch(`/api/cad-conversion/${id}/upload`, {
         method: 'POST', body: formData,
       });
       if (res.ok) {
@@ -138,20 +138,12 @@ export default function CadConversionStudio({ projectId }) {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden text-zinc-300">
+    <div className="flex flex-col h-screen bg-[#131826] overflow-hidden text-slate-300 relative font-sans">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none z-0"></div>
 
       {/* ── Top Navbar ──────────────────────────────────────────────────────── */}
-      <header className="h-12 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between px-4 shrink-0 z-50 shadow-md">
+      <header className="h-14 border-b border-white/10 bg-[#0f111a]/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-50 shadow-lg relative">
         <div className="flex items-center gap-3">
-          {/* Hamburger — visible on mobile/tablet only */}
-          <button
-            className="xl:hidden text-zinc-400 hover:text-white p-1 -ml-1 rounded"
-            onClick={() => setSidebarOpen(v => !v)}
-            aria-label="Toggle sidebar"
-          >
-            <Menu size={20} />
-          </button>
-
           <Link href="/cad-conversion" className="text-zinc-400 hover:text-white transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -164,12 +156,22 @@ export default function CadConversionStudio({ projectId }) {
           </h1>
         </div>
 
-        {/* Selected file name pill — tablet+ */}
-        {selectedConversion && (
-          <span className="hidden sm:inline-block text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-full px-3 py-1 truncate max-w-[220px]">
-            {selectedConversion.originalFileName}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Selected file name pill — tablet+ */}
+          {selectedConversion && (
+            <span className="hidden sm:inline-block text-xs font-bold tracking-wider text-[#00c8ff] bg-[#00c8ff]/10 border border-[#00c8ff]/30 rounded-full px-4 py-1.5 truncate max-w-[220px] shadow-[0_0_10px_rgba(0,200,255,0.1)]">
+              {selectedConversion.originalFileName}
+            </span>
+          )}
+          {/* Hamburger — visible on mobile/tablet only */}
+          <button
+            className="xl:hidden text-zinc-400 hover:text-white p-1 rounded"
+            onClick={() => setSidebarOpen(v => !v)}
+            aria-label="Toggle sidebar"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
       </header>
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
@@ -187,24 +189,24 @@ export default function CadConversionStudio({ projectId }) {
         {/* On mobile/tablet: slide-in drawer. On desktop: static panel (collapsible). */}
         <aside
           className={`
-            flex flex-col bg-zinc-950 border-r border-zinc-800 z-50 shrink-0
+            flex flex-col bg-[#0f111a]/90 backdrop-blur-md border-r border-white/10 z-50 shrink-0
             transition-all duration-300 ease-in-out
             /* mobile/tablet: fixed drawer */
-            fixed inset-y-0 left-0 top-12
+            fixed inset-y-0 right-0 top-14
             w-[280px] sm:w-80
             xl:static xl:top-auto xl:inset-y-auto
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'}
             xl:translate-x-0
-            ${sidebarCollapsed ? 'xl:w-12' : 'xl:w-80'}
+            ${sidebarCollapsed ? 'xl:w-16' : 'xl:w-80'}
           `}
         >
           {/* Collapse toggle — desktop only */}
           <button
-            className="hidden xl:flex absolute -right-3 top-4 w-6 h-6 items-center justify-center bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white z-10 transition-colors"
+            className="hidden xl:flex absolute -right-3 top-6 w-7 h-7 items-center justify-center bg-[#1d2440] border border-white/10 rounded-full text-[#8ba0b8] hover:text-[#00c8ff] hover:border-[#00c8ff]/50 hover:shadow-[0_0_10px_rgba(0,200,255,0.2)] z-10 transition-all duration-300 group"
             onClick={() => setSidebarCollapsed(v => !v)}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {sidebarCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+            {sidebarCollapsed ? <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" /> : <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />}
           </button>
 
           {/* Mobile close button */}
@@ -245,7 +247,7 @@ export default function CadConversionStudio({ projectId }) {
         <div className="flex-1 flex flex-col xl:flex-row overflow-hidden min-w-0">
 
           {/* Mobile Tab Bar */}
-          <div className="xl:hidden flex border-b border-zinc-800 bg-zinc-950 shrink-0">
+          <div className="xl:hidden flex border-b border-white/10 bg-[#0f111a] shrink-0 relative z-10">
             {[
               { id: TABS.PREVIEW, icon: <Image size={15} />, label: 'Preview' },
               { id: TABS.MAP,     icon: <MapPin size={15} />, label: 'Map' },
@@ -253,10 +255,10 @@ export default function CadConversionStudio({ projectId }) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold uppercase tracking-wider transition-all duration-300
                   ${activeTab === tab.id
-                    ? 'text-indigo-400 border-b-2 border-indigo-500 bg-zinc-900'
-                    : 'text-zinc-500 hover:text-zinc-300'}`}
+                    ? 'text-[#00c8ff] border-b-2 border-[#00c8ff] bg-[#1d2440]/30 shadow-[inset_0_-2px_10px_rgba(0,200,255,0.1)]'
+                    : 'text-[#8ba0b8] hover:text-white hover:bg-white/5'}`}
               >
                 {tab.icon}
                 {tab.label}
@@ -272,9 +274,9 @@ export default function CadConversionStudio({ projectId }) {
             `}
           >
             {/* Canvas */}
-            <div className="flex-1 relative overflow-hidden bg-[#0f1115]
-              xl:m-6 xl:mb-3 xl:rounded-xl xl:border xl:border-zinc-800 xl:shadow-2xl
-              m-0 rounded-none border-0
+            <div className="flex-1 relative overflow-hidden bg-[#1d2440]/60 backdrop-blur-md
+              xl:m-6 xl:mb-4 xl:rounded-2xl xl:border xl:border-white/10 xl:shadow-xl
+              m-0 rounded-none border-0 transition-all z-10
             ">
               <SvgPreview
                 conversion={selectedConversion}
@@ -285,18 +287,18 @@ export default function CadConversionStudio({ projectId }) {
 
             {/* Console — collapsible on mobile */}
             <div className={`
-              shrink-0 border-t border-zinc-800 xl:border xl:rounded-lg
-              xl:mx-6 xl:mb-6 xl:mt-0 xl:border-zinc-800
-              bg-zinc-950/95 backdrop-blur shadow-2xl overflow-hidden
-              transition-all duration-200
-              ${showConsole ? 'h-28 sm:h-32' : 'h-8'}
+              shrink-0 border-t border-white/10 xl:border xl:rounded-xl
+              xl:mx-6 xl:mb-6 xl:mt-0 
+              bg-[#0f111a]/80 backdrop-blur-md shadow-xl overflow-hidden
+              transition-all duration-300 relative z-10
+              ${showConsole ? 'h-32 sm:h-40' : 'h-10'}
             `}>
               {/* Console toggle header */}
               <button
-                className="xl:hidden w-full h-8 flex items-center px-4 gap-2 bg-zinc-900 border-b border-zinc-800 text-xs text-zinc-400 hover:text-zinc-200"
+                className="xl:hidden w-full h-10 flex items-center px-4 gap-2 bg-[#1d2440]/60 border-b border-white/10 text-xs font-bold uppercase tracking-wider text-[#8ba0b8] hover:text-[#00c8ff] transition-colors"
                 onClick={() => setShowConsole(v => !v)}
               >
-                <span className={`transition-transform ${showConsole ? 'rotate-180' : ''}`}>▲</span>
+                <span className={`transition-transform duration-300 ${showConsole ? 'rotate-180' : ''}`}>▲</span>
                 Console
               </button>
               {showConsole && (
@@ -308,7 +310,7 @@ export default function CadConversionStudio({ projectId }) {
           {/* ── Project Map Column ──────────────────────────────────────────── */}
           <div
             className={`
-              xl:w-[380px] 2xl:w-[460px] shrink-0 overflow-y-auto
+              xl:w-[400px] 2xl:w-[480px] shrink-0 overflow-y-auto relative z-10
               xl:p-6 p-4
               ${activeTab !== TABS.MAP ? 'hidden xl:block' : 'block flex-1'}
             `}

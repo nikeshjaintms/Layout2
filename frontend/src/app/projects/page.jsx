@@ -2,7 +2,7 @@ import React from 'react';
 import UserProjectPage from '@/components/user/UserProjectPage';
 
 export const metadata = {
-  title: 'Discover Projects | Real Estate',
+  title: 'Techomax Solution',
   description: 'Explore our premium real estate developments.',
 };
 

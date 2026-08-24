@@ -4,9 +4,9 @@ import * as api from '@/lib/api';
 // Thunks
 export const fetchProjects = createAsyncThunk(
   'projects/fetchProjects',
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await api.getCadProjects();
+      const response = await api.getCadProjects(params);
       return response;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch projects');
@@ -34,6 +34,18 @@ export const fetchProjectById = createAsyncThunk(
       return response;
     } catch (error) {
       return rejectWithValue(error.message || 'Failed to fetch project');
+    }
+  }
+);
+
+export const fetchPublicProjectById = createAsyncThunk(
+  'projects/fetchPublicProjectById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.getPublicProject(id);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch public project');
     }
   }
 );
@@ -76,6 +88,12 @@ export const deleteProject = createAsyncThunk(
 
 const initialState = {
   items: [],
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1
+  },
   selectedProject: null,
   loading: false,
   error: null,
@@ -106,7 +124,17 @@ const projectsSlice = createSlice({
       })
       .addCase(fetchProjects.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload;
+        if (action.payload && Array.isArray(action.payload.data)) {
+          state.items = action.payload.data;
+          state.pagination = {
+            total: action.payload.total,
+            page: action.payload.page,
+            limit: action.payload.limit,
+            totalPages: action.payload.totalPages
+          };
+        } else {
+          state.items = action.payload || [];
+        }
       })
       .addCase(fetchProjects.rejected, (state, action) => {
         state.loading = false;
@@ -137,6 +165,20 @@ const projectsSlice = createSlice({
         state.selectedProject = action.payload;
       })
       .addCase(fetchProjectById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Fetch Public Project By Id
+      .addCase(fetchPublicProjectById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPublicProjectById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedProject = action.payload;
+      })
+      .addCase(fetchPublicProjectById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

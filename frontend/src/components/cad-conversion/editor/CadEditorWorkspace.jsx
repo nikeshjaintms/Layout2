@@ -5,10 +5,53 @@ import CadEditorTopBar from './CadEditorTopBar';
 import CadEditorToolbar from './CadEditorToolbar';
 import CadEditorCanvas from './CadEditorCanvas';
 import CadEditorSidebar from './CadEditorSidebar';
+import { useDispatch } from 'react-redux';
+import { fetchProjectById, updateProject } from '@/redux/slices/projectsSlice';
+import { fetchPlots, updatePlot, updatePlotAssignment } from '@/redux/slices/plotsSlice';
+import { fetchPlotStatuses } from '@/redux/slices/plotStatusesSlice';
+import { fetchAmenities, fetchAmenityPlacements } from '@/redux/slices/amenitiesSlice';
+import { fetchAppearanceSettings } from '@/redux/slices/appearanceSlice';
+import { BASE_URL } from '@/lib/api';
 import { parseSvgStringToState, serializeStateToSvgString } from './SvgDocumentModel';
-import { getProjectPlots, getPlotStatuses, getProjectPlotStatuses, getAmenities, getAmenityPlacements, updateProjectPlotAssignment, getCadProject, updateCadProject, updateProjectPlot, getProjectAppearanceSettings } from '@/lib/api';
+import { 
+  getProjectPlots, getPlotStatuses, getProjectPlotStatuses, getAmenities, getAmenityPlacements, updateProjectPlotAssignment, getCadProject, updateCadProject, updateProjectPlot, getProjectAppearanceSettings, authFetch, getCadConversion, getCadConversionSvg,
+  getPublicProjectPlots, getPublicProjectPlotStatuses, getPublicAmenityPlacements, getPublicProject, getPublicProjectAppearanceSettings, getPublicCadConversion, getPublicCadConversionSvg
+} from '@/lib/api';
 import Swal from 'sweetalert2';
-export default function CadEditorWorkspace({ conversionId, projectId, readOnly = false, showPlotStatus: showPlotStatusProp, onUserViewerSelection, onZoomChange: onZoomChangeProp }) {
+
+function stripGroupById(svgString, id) {
+  let result = svgString;
+  const openTag = new RegExp(`<g\\b[^>]*\\bid="${id}"[^>]*>`, 'i');
+  
+  while (true) {
+    const match = openTag.exec(result);
+    if (!match) break;
+
+    const start = match.index;
+    let depth = 1;
+    let i = start + match[0].length;
+
+    while (i < result.length && depth > 0) {
+      const nextOpen  = result.indexOf('<g', i);
+      const nextClose = result.indexOf('</g>', i);
+
+      if (nextClose === -1) break; // malformed — bail out
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        i = nextOpen + 2;
+      } else {
+        depth--;
+        i = nextClose + 4;
+      }
+    }
+
+    result = result.slice(0, start) + result.slice(i);
+  }
+  return result;
+}
+
+export default function CadEditorWorkspace({ conversionId, projectId, readOnly = false, showPlotStatus: showPlotStatusProp, onUserViewerSelection, onZoomChange: onZoomChangeProp, gestureActive = false }) {
   const [conversion, setConversion] = useState(null);
   const [projectConfig, setProjectConfig] = useState(null);
   const [appearanceSettings, setAppearanceSettings] = useState(null);
@@ -65,7 +108,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       setIsSaving(true);
 
       // Inject labels from DOM into the SVG payload using pure string manipulation
-      let finalSvgString = content;
+      let finalSvgString = stripGroupById(content, 'composite-plot-labels');
       try {
         const labelsEl = document.getElementById('plot-labels-overlay');
         if (labelsEl) {
@@ -74,13 +117,13 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
           // Swap ID to avoid conflicts in editor but allow map detection
           const injectedLabelsString = labelsString.replace('id="plot-labels-overlay"', 'id="composite-plot-labels"');
           // Safely insert right before the closing </svg> tag
-          finalSvgString = content.replace(/<\/svg>\s*$/, injectedLabelsString + '\n</svg>');
+          finalSvgString = finalSvgString.replace(/<\/svg>\s*$/, injectedLabelsString + '\n</svg>');
         }
       } catch (err) {
         console.error('Failed to inject labels into SVG during save:', err);
       }
 
-      const res = await fetch(`http://localhost:5000/api/cad-conversion/${conversionId}/svg`, {
+      const res = await authFetch(`/api/cad-conversion/${conversionId}/svg`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ svg: finalSvgString }),
@@ -96,18 +139,18 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
         });
       }
       Swal.fire({
-          icon: "success",
-          title: "Saved!",
-          text: "Project saved successfully.",
-          timer: 1500,
-          showConfirmButton: false
+        icon: "success",
+        title: "Saved!",
+        text: "Project saved successfully.",
+        timer: 1500,
+        showConfirmButton: false
       });
     } catch (err) {
       console.error(err);
       Swal.fire({
-          icon: "error",
-          title: "Save Failed",
-          text: "Unable to save the project. Please try again."
+        icon: "error",
+        title: "Save Failed",
+        text: "Unable to save the project. Please try again."
       });
     } finally {
       setIsSaving(false);
@@ -146,7 +189,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   const handleShapeAttributeChange = (attrName, value, setStateFn) => {
     setStateFn(value);
     if (selectedShapeIds.length === 0) return;
-    
+
     const updateShapes = (shapes) => {
       let changed = false;
       const result = shapes.map(s => {
@@ -169,7 +212,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       });
       return { newShapes: result, childChanged: changed };
     };
-    
+
     setHistoryIndex(prev => prev + 1);
     setHistory(prev => {
       const newHist = prev.slice(0, historyIndex + 1);
@@ -183,7 +226,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       const { newShapes } = updateShapes(parsed.shapes);
       return serializeStateToSvgString(newShapes, parsed.viewBox);
     });
-    
+
     setSelectedShapes(prev => prev.map(s => {
       const newAttributes = { ...s.attributes, [attrName]: value };
       if (attrName === 'stroke' || attrName === 'fill') {
@@ -237,15 +280,15 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       }
       try {
         setLoading(true);
-        const res = await fetch(`http://localhost:5000/api/cad-conversion/${conversionId}`);
-        if (!res.ok) throw new Error('Conversion not found');
-        const data = await res.json();
+        const fetchConversion = readOnly ? getPublicCadConversion : getCadConversion;
+        const fetchSvg = readOnly ? getPublicCadConversionSvg : getCadConversionSvg;
+
+        const data = await fetchConversion(conversionId);
         setConversion(data);
         if (data.status === 'FAILED') throw new Error('Conversion failed');
 
-        const svgRes = await fetch(`http://localhost:5000/api/cad-conversion/${conversionId}/svg`);
-        if (!svgRes.ok) throw new Error('SVG not found');
-        const svgText = await svgRes.text();
+        let svgText = await fetchSvg(conversionId);
+        svgText = stripGroupById(svgText, 'composite-plot-labels');
         setSvgContent(svgText);
         setHistory([svgText]);
         setHistoryIndex(0);
@@ -256,41 +299,47 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       }
     }
     loadData();
-    
+
     // Load Amenities
+    const fetchPlacements = readOnly ? getPublicAmenityPlacements : getAmenityPlacements;
     Promise.all([
       getAmenities({ pagination: false }),
-      getAmenityPlacements(conversionId)
+      fetchPlacements(conversionId)
     ])
-    .then(([amenities, placements]) => {
-      setMasterAmenities(amenities);
-      setPlacedAmenities(placements);
-    })
-    .catch(console.error);
+      .then(([amenities, placements]) => {
+        setMasterAmenities(amenities.filter(a => a.isActive !== false));
+        setPlacedAmenities(placements);
+      })
+      .catch(console.error);
 
     if (projectId) {
+      const fetchProject = readOnly ? getPublicProject : getCadProject;
+      const fetchPlots = readOnly ? getPublicProjectPlots : getProjectPlots;
+      const fetchStatuses = readOnly ? getPublicProjectPlotStatuses : getProjectPlotStatuses;
+      const fetchAppearance = readOnly ? getPublicProjectAppearanceSettings : getProjectAppearanceSettings;
+
       Promise.all([
-        getCadProject(projectId), 
-        getProjectPlots(projectId, { pagination: false }), 
-        getProjectPlotStatuses(projectId, { pagination: false }),
-        getProjectAppearanceSettings(projectId).catch(() => null)
+        fetchProject(projectId),
+        fetchPlots(projectId, { pagination: false }),
+        fetchStatuses(projectId, { pagination: false }),
+        fetchAppearance(projectId).catch(() => null)
       ])
         .then(([proj, p, s, appearance]) => {
           setProjectConfig(proj);
           setPlots(p);
           setStatuses(s);
           if (appearance) setAppearanceSettings(appearance);
-          
+
           setSvgContent(currentSvg => {
             if (!currentSvg) return currentSvg;
             const parsed = parseSvgStringToState(currentSvg);
             let changed = false;
-            
+
             const syncShapes = (shapes) => {
               return shapes.map(shape => {
                 let sChanged = false;
                 let newAttrs = { ...shape.attributes };
-                
+
                 // Remove stale plot assignments
                 if (newAttrs['data-plot-id']) {
                   const plotId = parseInt(newAttrs['data-plot-id']);
@@ -302,7 +351,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
                     sChanged = true;
                   }
                 }
-                
+
                 // Apply DB assignments
                 const matchingPlot = p.find(plot => plot.cadRegionId === shape.id);
                 if (matchingPlot) {
@@ -311,15 +360,15 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
                     sChanged = true;
                   }
                   const statusColor = s.find(stat => stat.id === matchingPlot.statusId)?.fillColor;
-                  
+
                   if (matchingPlot.metadata && matchingPlot.metadata.transform) {
-                     if (newAttrs['transform'] !== matchingPlot.metadata.transform) {
-                         newAttrs['transform'] = matchingPlot.metadata.transform;
-                         sChanged = true;
-                     }
+                    if (newAttrs['transform'] !== matchingPlot.metadata.transform) {
+                      newAttrs['transform'] = matchingPlot.metadata.transform;
+                      sChanged = true;
+                    }
                   }
                 }
-                
+
                 let newChildren = shape.children;
                 if (shape.children) {
                   const { newShapes: syncedChildren, changed: cChanged } = syncShapesDeep(shape.children);
@@ -328,17 +377,17 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
                     sChanged = true;
                   }
                 }
-                
+
                 if (sChanged) changed = true;
                 return sChanged ? { ...shape, attributes: newAttrs, children: newChildren } : shape;
               });
             };
-            
+
             const syncShapesDeep = (shapes) => {
-               const newShapes = syncShapes(shapes);
-               return { newShapes, changed };
+              const newShapes = syncShapes(shapes);
+              return { newShapes, changed };
             };
-            
+
             const { newShapes, changed: wasChanged } = syncShapesDeep(parsed.shapes);
             if (wasChanged) {
               return serializeStateToSvgString(newShapes, parsed.viewBox);
@@ -363,7 +412,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     if (!conversionId || conversionId === 'undefined') return;
     setConversion(prev => ({ ...prev, layoutLineColor: color }));
     try {
-      await fetch(`http://localhost:5000/api/cad-conversion/${conversionId}`, {
+      await authFetch(`/api/cad-conversion/${conversionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ layoutLineColor: color })
@@ -378,9 +427,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     if (!plot) return;
     const currentMetadata = plot.metadata || {};
     const newMetadata = { ...currentMetadata, ...newStyles };
-    
+
     setPlots(prev => prev.map(p => p.id === plotId ? { ...p, metadata: newMetadata } : p));
-    
+
     try {
       await updateProjectPlot(projectId, plotId, { metadata: newMetadata });
     } catch (err) {
@@ -412,7 +461,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   }
 
   return (
-    <div className={`${readOnly ? 'h-full' : 'h-screen'} w-full bg-[#0f1115] flex flex-col overflow-hidden text-zinc-300 font-sans select-none`}>
+    <div className={`${readOnly ? 'h-full' : 'h-screen'} w-full bg-[#131826] flex flex-col overflow-hidden text-slate-300 font-sans select-none relative`}>
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none z-0"></div>
+      
       {!readOnly && (
         <CadEditorTopBar
           zoomPercent={zoomPercent}
@@ -444,21 +495,22 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
           plots={plots}
           projectConfig={projectConfig}
           onPlotLabelStyleChange={handlePlotLabelStyleChange}
+          appearanceSettings={appearanceSettings}
         />
       )}
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         {!readOnly && (
-          <CadEditorToolbar 
-            activeTool={activeTool} 
+          <CadEditorToolbar
+            activeTool={activeTool}
             onToolChange={(tool) => {
               setActiveTool(tool);
-            }} 
+            }}
           />
         )}
 
-        <div 
-          className="flex-1 relative overflow-hidden bg-[#0a0a0a] cad-viewer-global-styles"
+        <div
+          className="flex-1 relative overflow-hidden bg-black/40 backdrop-blur-md cad-viewer-global-styles"
           style={{ '--layout-line-color': conversion?.layoutLineColor || '#ffffff', touchAction: 'none' }}
         >
           <style>{`
@@ -498,10 +550,11 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
             projectId={projectId}
             projectConfig={projectConfig}
             appearanceSettings={appearanceSettings}
-            onSelectionChange={(ids, shapes) => { 
-              setSelectedShapeIds(ids); 
-              setSelectedShapes(shapes); 
-              
+            gestureActive={gestureActive}
+            onSelectionChange={(ids, shapes) => {
+              setSelectedShapeIds(ids);
+              setSelectedShapes(shapes);
+
               if (onUserViewerSelection) {
                 if (ids.length === 1 && shapes.length === 1) {
                   const shape = shapes[0];
@@ -523,13 +576,13 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
                 const result = shapes.map(s => {
                   if (s.id === id) {
                     changed = true;
-                    return { 
-                      ...s, 
-                      attributes: { 
-                        ...s.attributes, 
+                    return {
+                      ...s,
+                      attributes: {
+                        ...s.attributes,
                         'data-label-dx': dx,
                         'data-label-dy': dy
-                      } 
+                      }
                     };
                   }
                   if (s.children) {
@@ -543,7 +596,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
                 });
                 return { newShapes: result, childChanged: changed };
               };
-              
+
               const parsed = parseSvgStringToState(svgContent);
               const { newShapes, childChanged } = updateShapes(parsed.shapes);
               if (childChanged) {
@@ -570,129 +623,128 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
             statuses={statuses}
             masterAmenities={masterAmenities}
             projectConfig={projectConfig}
-            onProjectLabelStyleChange={(newStyles) => setProjectConfig(prev => ({ ...prev, ...newStyles }))}
+            onProjectLabelStyleChange={(key, val) => setProjectConfig(prev => ({ ...prev, [key]: val }))}
             onPlotLabelStyleChange={handlePlotLabelStyleChange}
             onLayoutLineColorChange={handleLayoutLineColorChange}
             onFillColorChange={setFillColor}
             onFillOpacityChange={setFillOpacity}
             onStrokeWidthChange={handleShapeStrokeWidthChange}
             onEraserSizeChange={setEraserSize}
+            appearanceSettings={appearanceSettings}
             onAssignPlot={async (plot, status, labelConfig = null) => {
-               if (selectedShapeIds.length !== 1) return;
-               
-               const regionId = selectedShapeIds[0];
-               const parsed = parseSvgStringToState(svgContent);
-               
-               // Find currently assigned plot for this region (if any)
-               let currentPlotIdStr = null;
-               const findPlotAttr = (shapes) => {
-                 for (const s of shapes) {
-                   if (s.id === regionId) {
-                     currentPlotIdStr = s.attributes['data-plot-id'];
-                     return true;
-                   }
-                   if (s.children && findPlotAttr(s.children)) return true;
-                 }
-                 return false;
-               };
-               findPlotAttr(parsed.shapes);
-               
-               const oldPlotId = currentPlotIdStr ? parseInt(currentPlotIdStr) : null;
-               
-               // 1. Release old plot if it's changing or being removed
-               if (oldPlotId && (!plot || oldPlotId !== plot.id)) {
-                 try {
-                   await updateProjectPlotAssignment(projectId, oldPlotId, { cadRegionId: null });
-                   setPlots(prev => prev.map(p => p.id === oldPlotId ? { ...p, cadRegionId: null, conversionId: null } : p));
-                 } catch (e) { console.error(e); }
-               }
-               
-               // 2. Assign new plot
-               if (plot) {
-                 try {
-                   // Try to calculate centroid via DOM
-                   const element = document.getElementById(regionId);
-                   let x = null, y = null, rotation = 0, scale = 1;
-                   const cadObjectType = element ? element.tagName.toLowerCase() : null;
-                   
-                   if (element && typeof element.getBBox === 'function') {
-                     const bbox = element.getBBox();
-                     x = bbox.x + bbox.width / 2;
-                     y = bbox.y + bbox.height / 2;
-                   }
-                   
-                   let metadata = null;
-                   if (element) {
-                     const transform = element.getAttribute('transform');
-                     if (transform) {
-                       metadata = { transform };
-                     }
-                   }
-                   
-                   await updateProjectPlotAssignment(projectId, plot.id, { 
-                     cadRegionId: regionId,
-                     conversionId: conversion?.id || null,
-                     cadObjectType,
-                     x, y, rotation, scale, metadata
-                   });
-                   setPlots(prev => prev.map(p => p.id === plot.id ? { ...p, cadRegionId: regionId, conversionId: conversion?.id, x, y, metadata } : p));
-                 } catch (e) { console.error(e); }
-               }
+              if (selectedShapeIds.length !== 1) return;
 
-               const updateShapes = (shapes) => {
-                 let changed = false;
-                 const result = shapes.map(s => {
-                   if (selectedShapeIds.includes(s.id)) {
-                     changed = true;
-                       const newAttrs = { 
-                         ...s.attributes, 
-                         'data-plot-id': plot ? plot.id : undefined,
-                         ...labelConfig
-                       };
-                       
-                       if (plot && status && status.color) {
-                         newAttrs.fill = status.color;
-                         newAttrs['fill-opacity'] = '0.75';
-                       }
-                       
-                       // Cleanup undefined attributes if removing assignment
-                       if (!plot && !labelConfig) {
-                         delete newAttrs['data-plot-id'];
-                         delete newAttrs['data-label-dx'];
-                         delete newAttrs['data-label-dy'];
-                         delete newAttrs['data-label-rotation'];
-                         delete newAttrs['data-label-fontsize'];
-                         delete newAttrs['data-label-color'];
-                         delete newAttrs['data-label-fontfamily'];
-                         delete newAttrs['data-label-fontweight'];
-                         delete newAttrs['data-label-align'];
-                         delete newAttrs['data-label-show-area'];
-                         delete newAttrs['data-label-show-width'];
-                         delete newAttrs['data-label-show-height'];
-                       }
+              const regionId = selectedShapeIds[0];
+              const parsed = parseSvgStringToState(svgContent);
 
-                       return { 
-                         ...s, 
-                         attributes: newAttrs
-                       };
-                   }
-                   if (s.children) {
-                     const { newShapes, childChanged } = updateShapes(s.children);
-                     if (childChanged) {
-                       changed = true;
-                       return { ...s, children: newShapes };
-                     }
-                   }
-                   return s;
-                 });
-                 return { newShapes: result, childChanged: changed };
-               };
-               
-               const { newShapes, childChanged } = updateShapes(parsed.shapes);
-               if (childChanged) {
-                 const newSvg = serializeStateToSvgString(newShapes, parsed.viewBox);
-                 saveSvgContent(newSvg);
-               }
+              // Find currently assigned plot for this region (if any)
+              let currentPlotIdStr = null;
+              const findPlotAttr = (shapes) => {
+                for (const s of shapes) {
+                  if (s.id === regionId) {
+                    currentPlotIdStr = s.attributes['data-plot-id'];
+                    return true;
+                  }
+                  if (s.children && findPlotAttr(s.children)) return true;
+                }
+                return false;
+              };
+              findPlotAttr(parsed.shapes);
+
+              const oldPlotId = currentPlotIdStr ? parseInt(currentPlotIdStr) : null;
+
+              // 1. Release old plot if it's changing or being removed
+              if (oldPlotId && (!plot || oldPlotId !== plot.id)) {
+                try {
+                  await updateProjectPlotAssignment(projectId, oldPlotId, { cadRegionId: null });
+                  setPlots(prev => prev.map(p => p.id === oldPlotId ? { ...p, cadRegionId: null, conversionId: null } : p));
+                } catch (e) { console.error(e); }
+              }
+
+              // 2. Assign new plot
+              if (plot) {
+                try {
+                  // Try to calculate centroid via DOM
+                  const element = document.getElementById(regionId);
+                  let x = null, y = null, rotation = 0, scale = 1;
+                  const cadObjectType = element ? element.tagName.toLowerCase() : null;
+
+                  if (element && typeof element.getBBox === 'function') {
+                    const bbox = element.getBBox();
+                    x = bbox.x + bbox.width / 2;
+                    y = bbox.y + bbox.height / 2;
+                  }
+
+                  let metadata = null;
+                  if (element) {
+                    const transform = element.getAttribute('transform');
+                    if (transform) {
+                      metadata = { transform };
+                    }
+                  }
+
+                  await updateProjectPlotAssignment(projectId, plot.id, {
+                    cadRegionId: regionId,
+                    conversionId: conversion?.id || null,
+                    cadObjectType,
+                    x, y, rotation, scale, metadata
+                  });
+                  setPlots(prev => prev.map(p => p.id === plot.id ? { ...p, cadRegionId: regionId, conversionId: conversion?.id, x, y, metadata } : p));
+                } catch (e) { console.error(e); }
+              }
+
+              const updateShapes = (shapes) => {
+                let changed = false;
+                const result = shapes.map(s => {
+                  if (selectedShapeIds.includes(s.id)) {
+                    changed = true;
+                    const newAttrs = {
+                      ...s.attributes,
+                      'data-plot-id': plot ? plot.id : undefined,
+                      ...labelConfig
+                    };
+
+                    // We do not bake status color into newAttrs.fill! 
+                    // ShapeRenderer overlay will handle status fill dynamically.
+
+                    // Cleanup undefined attributes if removing assignment
+                    if (!plot && !labelConfig) {
+                      delete newAttrs['data-plot-id'];
+                      delete newAttrs['data-label-dx'];
+                      delete newAttrs['data-label-dy'];
+                      delete newAttrs['data-label-rotation'];
+                      delete newAttrs['data-label-fontsize'];
+                      delete newAttrs['data-label-color'];
+                      delete newAttrs['data-label-fontfamily'];
+                      delete newAttrs['data-label-fontweight'];
+                      delete newAttrs['data-label-align'];
+                      delete newAttrs['data-label-show-area'];
+                      delete newAttrs['data-label-show-width'];
+                      delete newAttrs['data-label-show-height'];
+                    }
+
+                    return {
+                      ...s,
+                      attributes: newAttrs
+                    };
+                  }
+                  if (s.children) {
+                    const { newShapes, childChanged } = updateShapes(s.children);
+                    if (childChanged) {
+                      changed = true;
+                      return { ...s, children: newShapes };
+                    }
+                  }
+                  return s;
+                });
+                return { newShapes: result, childChanged: changed };
+              };
+
+              const { newShapes, childChanged } = updateShapes(parsed.shapes);
+              if (childChanged) {
+                const newSvg = serializeStateToSvgString(newShapes, parsed.viewBox);
+                saveSvgContent(newSvg);
+              }
             }}
           />
         )}

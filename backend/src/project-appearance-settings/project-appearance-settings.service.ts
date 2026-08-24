@@ -1,11 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProjectAppearanceSettingsService {
   constructor(private prisma: PrismaService) {}
 
-  async findOne(projectId: number) {
+  async validateProjectOwnership(projectId: number, user: any) {
+    if (!user || user.role === 'ADMIN') return true;
+    const project = await this.prisma.cadProject.findUnique({ where: { id: projectId }, select: { ownerId: true } });
+    if (!project) throw new NotFoundException('Project not found');
+    if (project.ownerId !== user.id) throw new ForbiddenException('You do not have permission to access this project');
+    return true;
+  }
+
+  async findOne(projectId: number, user?: any) {
+    if (user) await this.validateProjectOwnership(projectId, user);
     const settings = await this.prisma.projectAppearanceSettings.findUnique({
       where: { projectId },
     });
@@ -15,7 +24,8 @@ export class ProjectAppearanceSettingsService {
     return settings || null;
   }
 
-  async create(projectId: number, data: { dimensionColor?: string; plotColor?: string; plotLabelColor?: string }) {
+  async create(projectId: number, data: { dimensionColor?: string; plotColor?: string; plotLabelColor?: string }, user?: any) {
+    if (user) await this.validateProjectOwnership(projectId, user);
     const existing = await this.prisma.projectAppearanceSettings.findUnique({
       where: { projectId },
     });
@@ -32,7 +42,8 @@ export class ProjectAppearanceSettingsService {
     });
   }
 
-  async update(projectId: number, data: { dimensionColor?: string; plotColor?: string; plotLabelColor?: string }) {
+  async update(projectId: number, data: { dimensionColor?: string; plotColor?: string; plotLabelColor?: string }, user?: any) {
+    if (user) await this.validateProjectOwnership(projectId, user);
     const existing = await this.prisma.projectAppearanceSettings.findUnique({
       where: { projectId },
     });

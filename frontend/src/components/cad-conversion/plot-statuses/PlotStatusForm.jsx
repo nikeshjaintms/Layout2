@@ -8,6 +8,8 @@ import { ColorPicker, ConfigProvider, theme } from 'antd';
 import Link from 'next/link';
 import Swal from 'sweetalert2';
 
+import Sidebar from '@/components/cad-conversion/Sidebar';
+
 export default function PlotStatusForm({ projectId, statusId, initialData, currentMaxOrder }) {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -52,78 +54,86 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8 text-zinc-100 flex flex-col">
-      <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href={`/cad-conversion/${projectId}/plot-statuses`} className="p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 rounded-lg transition-colors border border-zinc-800">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{isEditing ? 'Edit Plot Status' : 'Add Plot Status'}</h1>
-            <p className="text-zinc-400 mt-1">{isEditing ? `Editing status for project #${projectId}` : `Create a new status for project #${projectId}`}</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#131826] flex text-slate-300 overflow-hidden font-sans">
+      <Sidebar projectId={projectId} />
+      <div className="flex-1 p-8 flex flex-col h-screen overflow-y-auto relative">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
-          <form onSubmit={handleSubmit} className="flex flex-col min-h-0">
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5">Status Name</label>
-                <input
-                  required
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
-                  placeholder="e.g. Premium"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-1.5">Fill Color</label>
-                <div className="flex items-center gap-3 w-full">
-                  <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
-                    <ColorPicker
-                      format="hex"
-                      value={formData.fillColor}
-                      onChange={(color) => setFormData(prev => ({ ...prev, fillColor: typeof color === 'string' ? color : color.toHexString() }))}
-                      showText
-                      size="large"
-                      className="bg-zinc-950 border-zinc-800 text-white w-full flex justify-start"
-                    />
-                  </ConfigProvider>
+        <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col relative z-10">
+          <div className="flex items-center gap-5 mb-8">
+            <Link 
+              href={`/cad-conversion/${projectId}/plot-statuses`} 
+              className="p-2.5 bg-[#1d2440] border border-white/10 hover:border-[#00c8ff]/50 rounded-xl transition-all duration-300 text-slate-400 hover:text-[#00c8ff] shadow-lg group"
+            >
+              <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            </Link>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-white">{isEditing ? 'Edit Plot Status' : 'Add Plot Status'}</h1>
+              <p className="text-[#8ba0b8] font-medium mt-1">{isEditing ? `Editing status for project #${projectId}` : `Create a new status for project #${projectId}`}</p>
+            </div>
+          </div>
+
+          <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl transition-all">
+            <form onSubmit={handleSubmit} className="flex flex-col">
+              <div className="p-8 space-y-8">
+                <div>
+                  <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Status Name *</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
+                    placeholder="e.g. Premium"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Fill Color</label>
+                  <div className="flex items-center gap-3 w-full bg-[#0f111a]/50 border border-white/10 rounded-xl p-2 focus-within:border-[#00c8ff]/50 focus-within:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all">
+                    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+                      <ColorPicker
+                        format="hex"
+                        value={formData.fillColor}
+                        onChange={(color) => setFormData(prev => ({ ...prev, fillColor: typeof color === 'string' ? color : color.toHexString() }))}
+                        showText
+                        size="large"
+                        className="bg-transparent border-none text-white w-full flex justify-start shadow-none"
+                      />
+                    </ConfigProvider>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Status</label>
+                  <select
+                    value={formData.isActive !== false ? 'true' : 'false'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'true' }))}
+                    className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
                 </div>
               </div>
-
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={e => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                    className="w-5 h-5 rounded border-zinc-700 text-indigo-600 focus:ring-indigo-500 bg-zinc-900"
-                  />
-                  <span className="text-sm font-medium text-white">Active Status</span>
-                </label>
+              
+              <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end gap-4 mt-auto">
+                <Link
+                  href={`/cad-conversion/${projectId}/plot-statuses`}
+                  className="px-6 py-2.5 text-sm font-bold text-[#8ba0b8] hover:text-white transition-colors bg-[#1d2440] border border-white/10 hover:border-white/30 rounded-xl shadow-lg"
+                >
+                  Cancel
+                </Link>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2.5 bg-[#00c8ff] hover:bg-[#00b0e6] disabled:opacity-50 text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] transition-all hover:scale-105 active:scale-95 disabled:hover:scale-100"
+                >
+                  {loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Status')}
+                </button>
               </div>
-            </div>
-            
-            <div className="p-6 border-t border-zinc-800 bg-zinc-900/50 flex justify-end gap-3">
-              <Link
-                href={`/cad-conversion/${projectId}/plot-statuses`}
-                className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg"
-              >
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-lg transition-all"
-              >
-                {loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Status')}
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </div>

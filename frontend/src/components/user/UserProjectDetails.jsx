@@ -1,52 +1,50 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getCadProject, getCadConversions } from '@/lib/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchPublicProjectById } from '@/redux/slices/projectsSlice';
+import { fetchPublicConversions } from '@/redux/slices/conversionsSlice';
 import UserLayoutViewer from './UserLayoutViewer';
 import UserProjectLoading from './UserProjectLoading';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 export default function UserProjectDetails({ projectId }) {
-  const [project, setProject] = useState(null);
+  const dispatch = useDispatch();
+  
+  const project = useSelector(state => state.projects.selectedProject);
+  const conversions = useSelector(state => state.conversions.items);
+  const loading = useSelector(state => state.projects.loading || state.conversions.loading);
+  const error = useSelector(state => state.projects.error || state.conversions.error);
+
   const [activeConversion, setActiveConversion] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isInitialMount, setIsInitialMount] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        // Fetch project and its conversions
-        const [projectData, conversionsData] = await Promise.all([
-          getCadProject(projectId),
-          getCadConversions(projectId)
-        ]);
-        
-        setProject(projectData);
-        
-        // Find the active layout to display
-        if (conversionsData && conversionsData.length > 0) {
-          const activeConversion = conversionsData.find(c => c.isActive);
-          setActiveConversion(activeConversion || null);
-        }
-      } catch (err) {
-        console.error('Failed to fetch project details:', err);
-        setError('Failed to load project details. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-    if (projectId) {
-      fetchData();
-    }
-  }, [projectId]);
+    setIsInitialMount(false);
+  }, []);
 
-  if (loading) {
+  useEffect(() => {
+    if (projectId) {
+      dispatch(fetchPublicProjectById(projectId));
+      dispatch(fetchPublicConversions(projectId));
+    }
+  }, [projectId, dispatch]);
+
+  useEffect(() => {
+    if (conversions && conversions.length > 0) {
+      const active = conversions.find(c => c.isActive);
+      setActiveConversion(active || null);
+    } else {
+      setActiveConversion(null);
+    }
+  }, [conversions]);
+
+  if (isInitialMount || loading) {
     return (
-      <div className="min-h-screen bg-[#0B0B0B] pt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-[#131826] pt-20 relative font-sans">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none z-0"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <UserProjectLoading />
         </div>
       </div>
@@ -55,27 +53,32 @@ export default function UserProjectDetails({ projectId }) {
 
   if (error || !project) {
     return (
-      <div className="min-h-screen bg-[#0B0B0B] text-slate-200 flex flex-col items-center justify-center p-8">
-        <h2 className="text-2xl font-bold mb-4">Project Not Found</h2>
-        <p className="text-slate-400 mb-8">{error || "The project you're looking for doesn't exist or is unavailable."}</p>
-        <Link href="/projects" className="px-6 py-3 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors">
-          Back to Projects
-        </Link>
+      <div className="min-h-screen bg-[#131826] text-slate-300 flex flex-col items-center justify-center p-8 relative font-sans">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none z-0"></div>
+        <div className="relative z-10 flex flex-col items-center">
+          <h2 className="text-2xl font-bold text-white uppercase tracking-wider mb-4">Project Not Found</h2>
+          <p className="text-[#8ba0b8] mb-8">{error || "The project you're looking for doesn't exist or is unavailable."}</p>
+          <Link href="/projects" className="px-6 py-3 bg-[#00c8ff]/10 text-[#00c8ff] hover:bg-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 rounded-lg text-sm font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_15px_rgba(0,200,255,0.3)]">
+            Back to Projects
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#0B0B0B] overflow-hidden">
+    <div className="h-screen flex flex-col bg-[#131826] overflow-hidden relative font-sans">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none z-0"></div>
+      
       {activeConversion && activeConversion.status === 'SUCCESS' ? (
         <UserLayoutViewer project={project} conversion={activeConversion} />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <h2 className="text-2xl font-bold text-slate-200 mb-4">No Layout Available</h2>
-          <p className="text-slate-400 max-w-md text-center mb-8">
+        <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+          <h2 className="text-2xl font-bold text-white uppercase tracking-wider mb-4">No Layout Available</h2>
+          <p className="text-[#8ba0b8] max-w-md text-center mb-8">
             This project does not have a finalized master plan layout available for viewing yet.
           </p>
-          <Link href="/projects" className="px-6 py-3 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700 transition-colors inline-flex items-center gap-2">
+          <Link href="/projects" className="px-6 py-3 bg-[#00c8ff]/10 text-[#00c8ff] hover:bg-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 rounded-lg text-sm font-bold uppercase tracking-wider transition-all shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_15px_rgba(0,200,255,0.3)] inline-flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" /> Back to Projects
           </Link>
         </div>

@@ -19,17 +19,17 @@ export default function CadEditorToolbar({ activeTool, onToolChange }) {
 
   return (
     <div className="flex z-10 h-full">
-      <div className="w-10 md:w-12 bg-zinc-950 border-r border-zinc-800 flex flex-col items-center py-2 md:py-4 gap-2 md:gap-4 z-20 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+      <div className="w-10 md:w-12 bg-[#0f111a]/90 backdrop-blur-md border-r border-white/10 flex flex-col items-center py-2 md:py-4 gap-2 md:gap-4 z-20 overflow-y-auto [&::-webkit-scrollbar]:hidden shadow-lg">
       <div className="flex flex-col gap-1 md:gap-2 w-full px-1 md:px-2">
         {tools.map(tool => (
           <button
             key={tool.id}
             onClick={() => { onToolChange(tool.id); }}
             title={tool.label}
-            className={`w-8 h-8 rounded flex items-center justify-center transition-colors mx-auto ${
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all mx-auto ${
               activeTool === tool.id 
-                ? 'bg-indigo-600 text-white' 
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                ? 'bg-[#00c8ff]/20 text-[#00c8ff] shadow-[inset_0_0_10px_rgba(0,200,255,0.2)] border border-[#00c8ff]/30' 
+                : 'text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-white/10'
             }`}
           >
             <tool.icon size={16} />

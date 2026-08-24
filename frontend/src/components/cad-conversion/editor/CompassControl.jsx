@@ -17,17 +17,31 @@ export default function CompassControl({ rotation = 0, onResetNorth }) {
         {/* N label and indicator */}
         <div className="absolute top-1 left-1/2 -translate-x-1/2 flex flex-col items-center">
           <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-b-[6px] border-l-transparent border-r-transparent border-b-red-500 mb-0.5" />
-          <span className="text-[9px] font-bold text-red-500 leading-none">N</span>
+          <div style={{ transform: `rotate(${-rotation}deg)`, transition: 'transform 0.2s ease' }}>
+            <span className="text-[9px] font-bold text-red-500 leading-none block">N</span>
+          </div>
         </div>
         
         {/* E label */}
-        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">E</span>
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
+          <div style={{ transform: `rotate(${-rotation}deg)`, transition: 'transform 0.2s ease' }}>
+            <span className="text-[9px] font-bold text-zinc-400 block leading-none">E</span>
+          </div>
+        </div>
         
         {/* S label */}
-        <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-zinc-400">S</span>
+        <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center justify-center">
+          <div style={{ transform: `rotate(${-rotation}deg)`, transition: 'transform 0.2s ease' }}>
+            <span className="text-[9px] font-bold text-zinc-400 block leading-none">S</span>
+          </div>
+        </div>
         
         {/* W label */}
-        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">W</span>
+        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
+          <div style={{ transform: `rotate(${-rotation}deg)`, transition: 'transform 0.2s ease' }}>
+            <span className="text-[9px] font-bold text-zinc-400 block leading-none">W</span>
+          </div>
+        </div>
       </div>
     </div>
   );

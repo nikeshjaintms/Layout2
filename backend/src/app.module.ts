@@ -7,11 +7,15 @@ import { CadConversionModule } from './cad-conversion/cad-conversion.module';
 import { CadProjectsModule } from './cad-projects/cad-projects.module';
 
 import { PlotStatusModule } from './plot-status/plot-status.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { ProjectPlotModule } from './project-plot/project-plot.module';
 import { AmenityModule } from './amenity/amenity.module';
 import { AmenityPlacementModule } from './amenity-placement/amenity-placement.module';
 import { ProjectBoundaryModule } from './project-boundary/project-boundary.module';
 import { ProjectAppearanceSettingsModule } from './project-appearance-settings/project-appearance-settings.module';
+import { ProjectGalleryModule } from './project-gallery/project-gallery.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -20,11 +24,15 @@ import { ProjectAppearanceSettingsModule } from './project-appearance-settings/p
     CadConversionModule,
     CadProjectsModule,
     PlotStatusModule,
+    AuthModule,
+    UsersModule,
     ProjectPlotModule,
     AmenityModule,
     AmenityPlacementModule,
     ProjectBoundaryModule,
     ProjectAppearanceSettingsModule,
+    ProjectGalleryModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

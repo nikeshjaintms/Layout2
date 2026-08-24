@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ValidateNested, Min } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ValidateNested, Min, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PlotType } from '@prisma/client';
 
@@ -52,4 +52,8 @@ export class CreateProjectPlotDto {
   @IsOptional()
   @IsString()
   remarks?: string;
+
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 }

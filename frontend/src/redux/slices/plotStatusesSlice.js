@@ -13,6 +13,18 @@ export const fetchPlotStatuses = createAsyncThunk(
   }
 );
 
+export const fetchPublicPlotStatuses = createAsyncThunk(
+  'plotStatuses/fetchPublicPlotStatuses',
+  async ({ projectId, params = {} }, { rejectWithValue }) => {
+    try {
+      const response = await api.getPublicProjectPlotStatuses(projectId, params);
+      return { response, params };
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch public plot statuses');
+    }
+  }
+);
+
 export const createPlotStatus = createAsyncThunk(
   'plotStatuses/createPlotStatus',
   async ({ projectId, body }, { rejectWithValue }) => {
@@ -81,12 +93,36 @@ const plotStatusesSlice = createSlice({
           state.items = response;
         } else {
           state.items = response.data || [];
-          state.total = response.meta?.total || 0;
-          state.page = response.meta?.page || state.page;
-          state.totalPages = response.meta?.totalPages || state.totalPages;
+          const meta = response.meta || response.pagination;
+          state.total = meta?.total || 0;
+          state.page = meta?.page || state.page;
+          state.totalPages = meta?.totalPages || state.totalPages;
         }
       })
       .addCase(fetchPlotStatuses.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
+      // Fetch Public
+      .addCase(fetchPublicPlotStatuses.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPublicPlotStatuses.fulfilled, (state, action) => {
+        state.loading = false;
+        const { response, params } = action.payload;
+        if (params.pagination === false) {
+          state.items = response;
+        } else {
+          state.items = response.data || [];
+          const meta = response.meta || response.pagination;
+          state.total = meta?.total || 0;
+          state.page = meta?.page || state.page;
+          state.totalPages = meta?.totalPages || state.totalPages;
+        }
+      })
+      .addCase(fetchPublicPlotStatuses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

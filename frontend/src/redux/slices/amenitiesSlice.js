@@ -135,9 +135,10 @@ const amenitiesSlice = createSlice({
           state.items = response;
         } else {
           state.items = response.data || [];
-          state.total = response.meta?.total || 0;
-          state.page = response.meta?.page || state.page;
-          state.totalPages = response.meta?.totalPages || state.totalPages;
+          const meta = response.meta || response.pagination;
+          state.total = meta?.total || 0;
+          state.page = meta?.page || state.page;
+          state.totalPages = meta?.totalPages || state.totalPages;
         }
       })
       .addCase(fetchAmenities.rejected, (state, action) => {
