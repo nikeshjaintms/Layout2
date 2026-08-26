@@ -37,7 +37,7 @@ export default function UserNavbar() {
 
           {/* RIGHT: Action Button */}
           <div className="flex items-center shrink-0">
-            <button className="bg-gradient-to-r from-[#0066ff] to-[#00c8ff] hover:opacity-90 text-white font-bold py-2 px-4 md:py-2.5 md:px-7 rounded-lg md:rounded-xl transition-all duration-300 shadow-md shadow-blue-500/20 text-sm md:text-[15px] flex items-center gap-1.5 md:gap-2 group hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap">
+            <button className="bg-gradient-to-r from-[#4b5cd1] to-[#303a8e] hover:opacity-90 text-white font-bold py-2 px-4 md:py-2.5 md:px-7 rounded-lg md:rounded-xl transition-all duration-300 shadow-md shadow-[#303a8e]/30 text-sm md:text-[15px] flex items-center gap-1.5 md:gap-2 group hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap">
               Get Plot <span className="text-lg md:text-xl leading-none group-hover:translate-x-1 transition-transform">&rarr;</span>
             </button>
           </div>

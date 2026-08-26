@@ -23,6 +23,7 @@ export default function EditGalleryPage({ params }) {
     imageUrl: '',
     isActive: true
   });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const fileInputRef = useRef(null);
@@ -57,6 +58,7 @@ export default function EditGalleryPage({ params }) {
       const resultAction = await dispatch(uploadGalleryImage({ projectId, file }));
       if (uploadGalleryImage.fulfilled.match(resultAction)) {
         setFormData(prev => ({ ...prev, imageUrl: resultAction.payload }));
+        setErrors({});
         Swal.fire({ title: 'Success', text: 'Image uploaded.', icon: 'success', background: '#18181b', color: '#fff', timer: 1500, showConfirmButton: false });
       } else {
         throw new Error(resultAction.payload || 'Upload failed');
@@ -69,10 +71,12 @@ export default function EditGalleryPage({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.imageUrl) {
+      setErrors({ imageUrl: 'An image is required.' });
       Swal.fire({ icon: 'error', title: 'Error', text: 'An image is required.', background: '#18181b', color: '#fff' });
       return;
     }
     
+    setErrors({});
     setLoading(true);
     try {
       const resultAction = await dispatch(updateGalleryItem({ projectId, id: galleryId, formData }));
@@ -151,6 +155,11 @@ export default function EditGalleryPage({ params }) {
                       onChange={handleFileChange}
                     />
                   </div>
+                  {errors.imageUrl && (
+                    <div className="text-red-400 text-xs font-bold text-center mt-2">
+                      {errors.imageUrl}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -167,7 +176,7 @@ export default function EditGalleryPage({ params }) {
 
 
                 <div className="pt-6 border-t border-white/10 flex justify-end">
-                  <button type="submit" disabled={loading || !formData.imageUrl} className="px-6 py-2.5 bg-gradient-to-r from-[#00c8ff] to-[#0096ff] hover:from-[#00b0ff] hover:to-[#0080ff] text-white font-semibold rounded-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button type="submit" disabled={loading} className="px-6 py-2.5 bg-gradient-to-r from-[#00c8ff] to-[#0096ff] hover:from-[#00b0ff] hover:to-[#0080ff] text-white font-semibold rounded-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save size={18} />} Update Image
                   </button>
                 </div>

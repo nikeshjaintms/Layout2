@@ -15,7 +15,8 @@ import { BASE_URL } from '@/lib/api';
 import { parseSvgStringToState, serializeStateToSvgString } from './SvgDocumentModel';
 import { 
   getProjectPlots, getPlotStatuses, getProjectPlotStatuses, getAmenities, getAmenityPlacements, updateProjectPlotAssignment, getCadProject, updateCadProject, updateProjectPlot, getProjectAppearanceSettings, authFetch, getCadConversion, getCadConversionSvg,
-  getPublicProjectPlots, getPublicProjectPlotStatuses, getPublicAmenityPlacements, getPublicProject, getPublicProjectAppearanceSettings, getPublicCadConversion, getPublicCadConversionSvg
+  getPublicProjectPlots, getPublicProjectPlotStatuses, getPublicAmenityPlacements, getPublicProject, getPublicProjectAppearanceSettings, getPublicCadConversion, getPublicCadConversionSvg,
+  createAmenityPlacement, updateAmenityPlacement, deleteAmenityPlacement
 } from '@/lib/api';
 import Swal from 'sweetalert2';
 
@@ -85,6 +86,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
 
   // Amenities
   const [masterAmenities, setMasterAmenities] = useState([]);
+  const [originalAmenities, setOriginalAmenities] = useState([]);
   const [placedAmenities, setPlacedAmenities] = useState([]);
 
   const [history, setHistory] = useState([]);
@@ -131,6 +133,37 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       if (!res.ok) {
         throw new Error('Failed to save SVG');
       }
+      
+      // Save Amenities
+      if (!readOnly) {
+        const deletedIds = originalAmenities.filter(oa => !placedAmenities.find(pa => pa.id === oa.id)).map(a => a.id);
+        const added = placedAmenities.filter(pa => String(pa.id).startsWith('temp-'));
+        const updated = placedAmenities.filter(pa => {
+          if (String(pa.id).startsWith('temp-')) return false;
+          const orig = originalAmenities.find(oa => oa.id === pa.id);
+          if (!orig) return false;
+          // Simple dirty check (ignoring createdAt/updatedAt changes if they exist)
+          return orig.x !== pa.x || orig.y !== pa.y || orig.width !== pa.width || orig.height !== pa.height || orig.rotation !== pa.rotation;
+        });
+
+        const promises = [];
+        for (const id of deletedIds) promises.push(deleteAmenityPlacement(id));
+        for (const pa of updated) promises.push(updateAmenityPlacement(pa.id, {
+          x: pa.x, y: pa.y, width: pa.width, height: pa.height, rotation: pa.rotation, layerOrder: pa.layerOrder || 0
+        }));
+        for (const pa of added) promises.push(createAmenityPlacement({
+          amenityId: pa.amenityId, projectId: parseInt(projectId), conversionId: parseInt(conversionId),
+          x: pa.x, y: pa.y, width: pa.width, height: pa.height, rotation: pa.rotation, layerOrder: pa.layerOrder || 0
+        }));
+        
+        await Promise.all(promises);
+        
+        // Refresh local state with real DB IDs
+        const fresh = await getAmenityPlacements(projectId);
+        setOriginalAmenities(fresh);
+        setPlacedAmenities(fresh);
+      }
+
       if (projectConfig) {
         await updateCadProject(projectId, {
           labelFontSize: projectConfig.labelFontSize,
@@ -308,7 +341,8 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     ])
       .then(([amenities, placements]) => {
         setMasterAmenities(amenities.filter(a => a.isActive !== false));
-        setPlacedAmenities(placements);
+        setOriginalAmenities(placements);
+        setPlacedAmenities(JSON.parse(JSON.stringify(placements)));
       })
       .catch(console.error);
 

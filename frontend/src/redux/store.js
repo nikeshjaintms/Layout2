@@ -9,6 +9,7 @@ import projectGalleryReducer from './slices/projectGallerySlice';
 import projectDetailsReducer from './slices/projectDetailsSlice';
 import authReducer from './slices/authSlice';
 import usersReducer from './slices/usersSlice';
+import subscriptionsReducer from './slices/subscriptionsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     appearance: appearanceReducer,
     projectGallery: projectGalleryReducer,
     projectDetails: projectDetailsReducer,
+    subscriptions: subscriptionsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

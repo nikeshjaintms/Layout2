@@ -11,6 +11,29 @@ export default function AmenitiesOverlay({
   onSelectionChange
 }) {
   const [dragState, setDragState] = useState(null);
+  
+  const [actualScale, setActualScale] = useState(1);
+
+  // Hook to keep actualScale perfectly in sync with CTM, just like TransformControls does dynamically
+  useEffect(() => {
+    const updateScale = () => {
+      if (!svgRef.current) return;
+      const svgEl = svgRef.current.tagName.toLowerCase() === 'svg' ? svgRef.current : svgRef.current.querySelector('svg');
+      if (svgEl) {
+        const ctm = svgEl.getScreenCTM();
+        if (ctm && ctm.a) {
+          setActualScale(ctm.a);
+        }
+      }
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    window.addEventListener('wheel', updateScale);
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      window.removeEventListener('wheel', updateScale);
+    };
+  }, [svgRef]);
 
   useEffect(() => {
     if (!dragState) return;
@@ -119,10 +142,10 @@ export default function AmenitiesOverlay({
 
   if (!placedAmenities || placedAmenities.length === 0) return null;
 
-  const actualScale = scale || 1;
-  const strokeW = 1.5 / actualScale;
-  const handleR = 4 / actualScale;
-  const rotateDist = 24 / actualScale;
+  const effScale = actualScale > 0 ? actualScale : (scale || 1);
+  const strokeW = 1.5 / effScale;
+  const handleR = 4 / effScale;
+  const rotateDist = 24 / effScale;
 
   const handlePointerDown = (e, id, mode, original) => {
     e.stopPropagation();
@@ -213,12 +236,12 @@ export default function AmenitiesOverlay({
 
                 {/* Central Move Handle */}
                 <g cursor="move" pointerEvents="all" onPointerDown={(e) => handlePointerDown(e, placement.id, 'move', { x, y, width: w, height: h, rotation })}>
-                  <circle cx={0} cy={0} r={12 / actualScale} fill="rgba(255,255,255,0.9)" stroke="#3b82f6" strokeWidth={1.5 / actualScale} />
-                  <path d={`M ${-12/actualScale*0.6} 0 L ${12/actualScale*0.6} 0 M 0 ${-12/actualScale*0.6} L 0 ${12/actualScale*0.6}`} stroke="#3b82f6" strokeWidth={1.5 / actualScale} />
-                  <path d={`M ${-12/actualScale*0.6} 0 L ${-12/actualScale*0.3} ${-12/actualScale*0.3} M ${-12/actualScale*0.6} 0 L ${-12/actualScale*0.3} ${12/actualScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / actualScale} fill="none" />
-                  <path d={`M ${12/actualScale*0.6} 0 L ${12/actualScale*0.3} ${-12/actualScale*0.3} M ${12/actualScale*0.6} 0 L ${12/actualScale*0.3} ${12/actualScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / actualScale} fill="none" />
-                  <path d={`M 0 ${-12/actualScale*0.6} L ${-12/actualScale*0.3} ${-12/actualScale*0.3} M 0 ${-12/actualScale*0.6} L ${12/actualScale*0.3} ${-12/actualScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / actualScale} fill="none" />
-                  <path d={`M 0 ${12/actualScale*0.6} L ${-12/actualScale*0.3} ${12/actualScale*0.3} M 0 ${12/actualScale*0.6} L ${12/actualScale*0.3} ${12/actualScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / actualScale} fill="none" />
+                  <circle cx={0} cy={0} r={12 / effScale} fill="rgba(255,255,255,0.9)" stroke="#3b82f6" strokeWidth={1.5 / effScale} />
+                  <path d={`M ${-12/effScale*0.6} 0 L ${12/effScale*0.6} 0 M 0 ${-12/effScale*0.6} L 0 ${12/effScale*0.6}`} stroke="#3b82f6" strokeWidth={1.5 / effScale} />
+                  <path d={`M ${-12/effScale*0.6} 0 L ${-12/effScale*0.3} ${-12/effScale*0.3} M ${-12/effScale*0.6} 0 L ${-12/effScale*0.3} ${12/effScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / effScale} fill="none" />
+                  <path d={`M ${12/effScale*0.6} 0 L ${12/effScale*0.3} ${-12/effScale*0.3} M ${12/effScale*0.6} 0 L ${12/effScale*0.3} ${12/effScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / effScale} fill="none" />
+                  <path d={`M 0 ${-12/effScale*0.6} L ${-12/effScale*0.3} ${-12/effScale*0.3} M 0 ${-12/effScale*0.6} L ${12/effScale*0.3} ${-12/effScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / effScale} fill="none" />
+                  <path d={`M 0 ${12/effScale*0.6} L ${-12/effScale*0.3} ${12/effScale*0.3} M 0 ${12/effScale*0.6} L ${12/effScale*0.3} ${12/effScale*0.3}`} stroke="#3b82f6" strokeWidth={1.5 / effScale} fill="none" />
                 </g>
 
                 {/* 8 Resize Handles */}

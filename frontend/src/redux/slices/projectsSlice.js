@@ -74,6 +74,18 @@ export const updateProject = createAsyncThunk(
   }
 );
 
+export const updateProjectStatus = createAsyncThunk(
+  'projects/updateProjectStatus',
+  async ({ id, active }, { rejectWithValue }) => {
+    try {
+      const response = await api.updateProjectStatus(id, active);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to update project status');
+    }
+  }
+);
+
 export const deleteProject = createAsyncThunk(
   'projects/deleteProject',
   async (id, { rejectWithValue }) => {
@@ -214,6 +226,26 @@ const projectsSlice = createSlice({
         }
       })
       .addCase(updateProject.rejected, (state, action) => {
+        state.isUpdating = false;
+        state.error = action.payload;
+      })
+
+      // Update Project Status
+      .addCase(updateProjectStatus.pending, (state) => {
+        state.isUpdating = true;
+        state.error = null;
+      })
+      .addCase(updateProjectStatus.fulfilled, (state, action) => {
+        state.isUpdating = false;
+        const index = state.items.findIndex(p => p.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        if (state.selectedProject?.id === action.payload.id) {
+          state.selectedProject = action.payload;
+        }
+      })
+      .addCase(updateProjectStatus.rejected, (state, action) => {
         state.isUpdating = false;
         state.error = action.payload;
       })

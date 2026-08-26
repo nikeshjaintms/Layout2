@@ -30,6 +30,43 @@ export class AuthService {
     if (!isMatch) {
       throw new UnauthorizedException('Invalid email or password.');
     }
+
+    if (!user.firstLoginAt && user.role?.name === 'CLIENT') {
+      const now = new Date();
+      const endDate = new Date(now);
+      endDate.setDate(now.getDate() + 365);
+
+      const updatedUser = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          firstLoginAt: now,
+          subscription: {
+            create: {
+              startDate: now,
+              endDate: endDate,
+              durationDays: 365,
+              status: 'ACTIVE'
+            }
+          }
+        },
+        include: { subscription: true }
+      });
+      user.firstLoginAt = now;
+
+      if (updatedUser.subscription) {
+        await this.prisma.subscriptionHistory.create({
+          data: {
+            subscriptionId: updatedUser.subscription.id,
+            action: 'CREATED',
+            newStartDate: now,
+            newEndDate: endDate,
+            newStatus: 'ACTIVE',
+            changedBy: 'SYSTEM'
+          }
+        });
+      }
+    }
+
     const { password, ...result } = user;
     
     const payload = { email: user.email, sub: user.id };

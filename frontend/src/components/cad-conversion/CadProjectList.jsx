@@ -4,16 +4,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProjects, createProject, deleteProject } from '@/redux/slices/projectsSlice';
+import { fetchProjects, createProject, deleteProject, updateProjectStatus } from '@/redux/slices/projectsSlice';
+import { fetchMySubscription } from '@/redux/slices/subscriptionsSlice';
 import { logoutUser } from '@/redux/slices/authSlice';
 import ChangePasswordModal from '@/components/auth/ChangePasswordModal';
 import Swal from 'sweetalert2';
-import { Search, Plus, Folder, Calendar, FileImage, ArrowRight, X, Trash2, ChevronDown, Shield, LogOut } from 'lucide-react';
+import { Search, Plus, Folder, Calendar, FileImage, ArrowRight, X, Trash2, ChevronDown, Shield, LogOut, LayoutDashboard } from 'lucide-react';
 import { Can } from '@/lib/ability';
 
 export default function CadProjectList() {
   const dispatch = useDispatch();
   const { items: projects, loading, isCreating, pagination } = useSelector(state => state.projects);
+  const { mySubscription } = useSelector(state => state.subscriptions);
   
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -62,6 +64,7 @@ export default function CadProjectList() {
 
   useEffect(() => {
     dispatch(fetchProjects({ page: currentPage, limit: 10, search: debouncedSearch }));
+    dispatch(fetchMySubscription());
   }, [dispatch, currentPage, debouncedSearch]);
 
   const handleCreate = async (e) => {
@@ -128,6 +131,46 @@ export default function CadProjectList() {
       }
     }
   };
+  const handleStatusClick = async (e, project) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // If admin has deactivated, client cannot toggle
+    if (!project.adminActive) {
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'Activation Restricted', 
+        text: 'This project has been restricted by Admin. Please contact admin to activate this project.', 
+        background: '#18181b', 
+        color: '#fff',
+        confirmButtonColor: '#00c8ff'
+      });
+      return;
+    }
+
+    const newStatus = !project.clientActive;
+    const actionText = newStatus ? 'Activate' : 'Deactivate';
+
+    const result = await Swal.fire({
+      title: `${actionText} Project?`,
+      html: `Are you sure you want to <b>${actionText.toLowerCase()}</b> <b>${project.name}</b>?${!newStatus ? '<br/>It will no longer be visible publicly.' : ''}`,
+      icon: newStatus ? 'info' : 'warning',
+      showCancelButton: true,
+      confirmButtonColor: newStatus ? '#22c55e' : '#ef4444',
+      cancelButtonColor: '#3f3f46',
+      confirmButtonText: `Yes, ${actionText}`,
+      background: '#18181b',
+      color: '#fff'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await dispatch(updateProjectStatus({ id: project.id, active: newStatus })).unwrap();
+      } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Failed', text: err.message || err, background: '#18181b', color: '#fff' });
+      }
+    }
+  };
 
   // Remove local filter since backend does it
   const filteredProjects = projects || [];
@@ -184,6 +227,17 @@ export default function CadProjectList() {
                   <Shield size={16} className="text-[#8ba0b8]" />
                   Change Password
                 </button>
+                
+                {authUser?.role === 'ADMIN' && (
+                  <Link 
+                    href="/admin/dashboard"
+                    className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-[#c4d6eb] hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <LayoutDashboard size={16} className="text-[#8ba0b8]" />
+                    Admin Panel
+                  </Link>
+                )}
                 
                 <button 
                   className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-[#ff4d4d] hover:bg-[#ff4d4d]/10 transition-colors"
@@ -253,8 +307,33 @@ export default function CadProjectList() {
             </div>
           )}
 
+          {/* Subscription Banner */}
+          {mySubscription && (
+            <div className={`mt-6 p-4 rounded-xl border flex items-center justify-between ${
+              new Date(mySubscription.endDate).getTime() < new Date().getTime() 
+                ? 'bg-red-500/10 border-red-500/30' 
+                : mySubscription.status === 'INACTIVE'
+                ? 'bg-orange-500/10 border-orange-500/30'
+                : 'bg-green-500/10 border-green-500/30'
+            }`}>
+              <div>
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <Shield size={16} className={new Date(mySubscription.endDate).getTime() < new Date().getTime() ? 'text-red-400' : 'text-green-400'} />
+                  Subscription Status: {new Date(mySubscription.endDate).getTime() < new Date().getTime() ? 'EXPIRED' : mySubscription.status}
+                </h3>
+                <p className="text-sm text-[#8ba0b8] mt-1">
+                  Expires: {new Date(mySubscription.endDate).toLocaleDateString()}
+                  {new Date(mySubscription.endDate).getTime() < new Date().getTime() 
+                    ? ' — Please contact admin to renew.' 
+                    : ` — ${Math.ceil((new Date(mySubscription.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} days remaining`
+                  }
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Search & Stats Bar */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4 sm:gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4 sm:gap-6 mt-8">
             <div className="relative w-full sm:max-w-md">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="w-5 h-5 text-[#8ba0b8]" />
@@ -285,7 +364,7 @@ export default function CadProjectList() {
               <Link 
                 href={`/cad-conversion/${project.id}`} 
                 key={project.id}
-                className="group relative bg-[#1a1d24]/40 backdrop-blur-sm border border-white/5 rounded-2xl p-6 hover:bg-[#1a1d24]/80 hover:border-[#00c8ff]/30 transition-all duration-500 overflow-hidden flex flex-col h-full"
+                className={`group relative bg-[#1a1d24]/40 backdrop-blur-sm border ${project.adminActive && project.clientActive ? 'border-white/5 hover:border-[#00c8ff]/30' : 'border-red-500/20 hover:border-red-500/50'} rounded-2xl p-6 hover:bg-[#1a1d24]/80 transition-all duration-500 overflow-hidden flex flex-col h-full`}
               >
                 {/* Hover gradient effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[#00c8ff]/0 via-transparent to-[#00c8ff]/0 group-hover:from-[#00c8ff]/5 group-hover:to-blue-600/5 transition-all duration-500" />
@@ -319,9 +398,18 @@ export default function CadProjectList() {
                     </div>
                   </div>
                   
-                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00c8ff] transition-colors line-clamp-1">
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00c8ff] transition-colors line-clamp-1 flex items-center gap-2">
                     {project.name}
                   </h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button 
+                      onClick={(e) => handleStatusClick(e, project)}
+                      className={`text-[10px] font-black px-2 py-1 rounded border flex items-center gap-1 ${project.adminActive && project.clientActive ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'}`}
+                    >
+                      {project.adminActive && project.clientActive ? 'ACTIVE' : 'INACTIVE'}
+                      <ChevronDown size={12} />
+                    </button>
+                  </div>
                   <p className="text-sm text-[#8ba0b8] line-clamp-2">
                     {project.description || 'No description available for this project.'}
                   </p>

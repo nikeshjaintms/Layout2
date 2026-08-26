@@ -122,25 +122,27 @@ export default function AdminUsers() {
                   <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Name</th>
                   <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Email</th>
                   <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Role</th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Subscription</th>
+                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Days Left</th>
                   <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-[#8ba0b8]">
+                    <td colSpan={6} className="px-6 py-12 text-center text-[#8ba0b8]">
                       Loading users...
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-red-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-red-500">
                       {error}
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-[#8ba0b8]">
+                    <td colSpan={6} className="px-6 py-12 text-center text-[#8ba0b8]">
                       No users found.
                     </td>
                   </tr>
@@ -153,6 +155,30 @@ export default function AdminUsers() {
                         <span className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm inline-flex items-center justify-center min-w-[80px] bg-[#0f111a] border border-[#00c8ff]/30 text-[#00c8ff]">
                           {user.role?.name || 'UNKNOWN'}
                         </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        {user.role?.name === 'CLIENT' ? (
+                          user.subscription ? (
+                            <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded border ${user.subscription.status === 'ACTIVE' && new Date(user.subscription.endDate).getTime() >= new Date().getTime() ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                              {new Date(user.subscription.endDate).getTime() < new Date().getTime() ? 'EXPIRED' : user.subscription.status}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-[10px] font-bold uppercase rounded border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Not Started</span>
+                          )
+                        ) : (
+                          <span className="text-[#8ba0b8]">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-5">
+                        {user.role?.name === 'CLIENT' && user.subscription ? (() => {
+                          const diff = new Date(user.subscription.endDate).getTime() - new Date().getTime();
+                          const days = Math.ceil(diff / (1000 * 3600 * 24));
+                          return days < 0 ? (
+                            <span className="text-red-400 text-xs font-bold">Expired</span>
+                          ) : (
+                            <span className={`text-xs font-bold ${days < 30 ? 'text-orange-400' : 'text-green-400'}`}>{days} days left</span>
+                          );
+                        })() : <span className="text-[#8ba0b8]">-</span>}
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">

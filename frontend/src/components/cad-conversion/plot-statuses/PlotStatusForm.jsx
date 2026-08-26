@@ -18,6 +18,7 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
   const emptyForm = { name: '', fillColor: '#000000', isActive: true };
   const [formData, setFormData] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -31,6 +32,13 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      setErrors({ name: 'Status Name is required.' });
+      return;
+    }
+    setErrors({});
+    
     try {
       setLoading(true);
       const payload = { ...formData };
@@ -74,18 +82,23 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
           </div>
 
           <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl transition-all">
-            <form onSubmit={handleSubmit} className="flex flex-col">
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col">
               <div className="p-8 space-y-8">
                 <div>
                   <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Status Name *</label>
                   <input
-                    required
                     type="text"
                     value={formData.name}
-                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value.replace(/\s/g, '') }))}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ') e.preventDefault();
+                    }}
                     className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
                     placeholder="e.g. Premium"
                   />
+                  {errors.name && (
+                    <div className="text-red-400 text-xs font-bold mt-2">{errors.name}</div>
+                  )}
                 </div>
                 
                 <div>

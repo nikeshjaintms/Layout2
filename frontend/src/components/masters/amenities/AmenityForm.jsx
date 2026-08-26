@@ -29,6 +29,7 @@ export default function AmenityForm({ initialData = null }) {
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -48,6 +49,7 @@ export default function AmenityForm({ initialData = null }) {
       setUploading(true);
       const { iconPath } = await uploadAmenityIcon(file);
       setFormData(prev => ({ ...prev, iconPath }));
+      setErrors(prev => ({ ...prev, iconPath: null }));
     } catch (err) {
       Swal.fire({ title: 'Error', text: 'Failed to upload icon', icon: 'error', background: '#18181b', color: '#fff' });
     } finally {
@@ -57,6 +59,23 @@ export default function AmenityForm({ initialData = null }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    const newErrors = {};
+    if (!formData.iconPath) newErrors.iconPath = 'Icon is required.';
+    if (!formData.name.trim()) newErrors.name = 'Name is required.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: 'Please fill in all required fields.',
+        background: '#18181b', color: '#fff'
+      });
+      return;
+    }
+
+    setErrors({});
     setSubmitting(true);
     try {
       if (isEditing) {
@@ -90,7 +109,7 @@ export default function AmenityForm({ initialData = null }) {
           </div>
 
           <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl transition-all">
-            <form onSubmit={handleSubmit} className="flex flex-col">
+            <form onSubmit={handleSubmit} noValidate className="flex flex-col">
               <div className="space-y-6 p-6 sm:p-8">
                 <div className="space-y-4">
                   <label className="block text-sm font-semibold text-slate-300 uppercase tracking-wider text-center">Upload Icon *</label>
@@ -116,11 +135,23 @@ export default function AmenityForm({ initialData = null }) {
                       />
                     </div>
                   </div>
+                  {errors.iconPath && <div className="text-red-400 text-xs font-bold text-center mt-2">{errors.iconPath}</div>}
                 </div>
 
                 <div className="mt-6">
                   <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Name *</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} disabled={submitting} className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all" placeholder="e.g. Club House" />
+                  <input 
+                    type="text" 
+                    value={formData.name} 
+                    onChange={e => setFormData({ ...formData, name: e.target.value.replace(/\s/g, '') })} 
+                    onKeyDown={(e) => {
+                      if (e.key === ' ') e.preventDefault();
+                    }}
+                    disabled={submitting} 
+                    className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all" 
+                    placeholder="e.g. ClubHouse" 
+                  />
+                  {errors.name && <div className="text-red-400 text-xs font-bold mt-2">{errors.name}</div>}
                 </div>
 
                 <div className="mt-6">

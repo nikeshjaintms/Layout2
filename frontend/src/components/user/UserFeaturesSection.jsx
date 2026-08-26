@@ -77,17 +77,17 @@ export default function UserFeaturesSection() {
           {/* HUD Right Bracket */}
           <div className="absolute top-1/2 -right-2 sm:-right-8 -translate-y-1/2 w-8 sm:w-16 h-[120%] border-r-2 border-y-2 border-[#0066ff]/20 rounded-r-3xl shadow-[inset_-10px_0_20px_rgba(0,102,255,0.05)] animate-pulse" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 80%, 100% 80%, 100% 20%, 0 20%)', animationDuration: '3s', animationDelay: '1.5s' }} />
 
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0066ff]/10 border border-[#0066ff]/30 text-[#00c8ff] text-xs font-bold tracking-widest uppercase mb-6 shadow-[0_0_15px_rgba(0,102,255,0.2)] animate-pulse" style={{ animationDuration: '4s' }}>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#4b5cd1]/10 border border-[#4b5cd1]/30 text-[#4b5cd1] text-xs font-bold tracking-widest uppercase mb-6 shadow-[0_0_15px_rgba(75,92,209,0.2)] animate-pulse" style={{ animationDuration: '4s' }}>
             <Rocket className="w-3.5 h-3.5" />
             Powerful Platform
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 sm:mb-6 tracking-tight leading-[1.2] sm:leading-[1.1] drop-shadow-[0_0_20px_rgba(0,102,255,0.2)]">
             Everything You Need.<br className="hidden sm:block" />
             <span className="sm:hidden"> </span>
-            Built for <span className="text-[#0066ff] drop-shadow-[0_0_30px_rgba(0,102,255,0.6)]">Real Results.</span>
+            Built for <span className="text-[#4b5cd1] drop-shadow-[0_0_30px_rgba(75,92,209,0.6)]">Real Results.</span>
           </h2>
           <p className="text-base sm:text-lg text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto px-4 sm:px-0">
-            Techomax gives you all the powerful tools to host, manage and showcase your projects with a <span className="text-[#00c8ff] drop-shadow-[0_0_10px_rgba(0,200,255,0.5)]">seamless plot viewing experience.</span>
+            Techomax gives you all the powerful tools to host, manage and showcase your projects with a <span className="text-[#4b5cd1] drop-shadow-[0_0_10px_rgba(75,92,209,0.5)]">seamless plot viewing experience.</span>
           </p>
         </div>
 
@@ -131,11 +131,11 @@ export default function UserFeaturesSection() {
                       
                       {/* Hexagon Shape Background */}
                       <div 
-                        className="absolute inset-0 bg-[#0066ff]/10 border border-[#0066ff]/40 group-hover:bg-[#00c8ff]/20 group-hover:border-[#00c8ff]/60 transition-all duration-300" 
+                        className="absolute inset-0 bg-[#303a8e]/10 border border-[#303a8e]/40 group-hover:bg-[#4b5cd1]/20 group-hover:border-[#4b5cd1]/60 transition-all duration-300" 
                         style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }}
                       />
                       {/* Icon */}
-                      <Icon className="w-5 h-5 text-[#0066ff] group-hover:text-[#00c8ff] relative z-10 drop-shadow-[0_0_5px_rgba(0,102,255,0.6)] group-hover:drop-shadow-[0_0_10px_rgba(0,200,255,1)] transition-all duration-300" strokeWidth={1.5} />
+                      <Icon className="w-5 h-5 text-[#303a8e] group-hover:text-[#4b5cd1] relative z-10 drop-shadow-[0_0_5px_rgba(48,58,142,0.6)] group-hover:drop-shadow-[0_0_10px_rgba(75,92,209,1)] transition-all duration-300" strokeWidth={1.5} />
                     </div>
                     
                     {/* Text Content */}

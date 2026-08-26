@@ -134,6 +134,13 @@ export async function updateCadProject(id, body) {
   });
 }
 
+export async function updateProjectStatus(id, active) {
+  return request(`/cad-projects/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ active }),
+  });
+}
+
 export async function deleteCadProject(id) {
   return request(`/cad-projects/${id}`, { method: 'DELETE' });
 }
@@ -387,6 +394,32 @@ export async function updateAmenityPlacement(id, body) {
 
 export async function deleteAmenityPlacement(id) {
   return request(`/api/amenity-placement/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// SUBSCRIPTIONS
+// ==========================================
+
+export async function getSubscriptions() {
+  return request('/subscriptions');
+}
+
+export async function getMySubscription() {
+  return request('/subscriptions/me');
+}
+
+export async function updateSubscriptionStatus(id, status) {
+  return request(`/subscriptions/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
+}
+
+export async function extendSubscription(id, durationType, durationValue) {
+  return request(`/subscriptions/${id}/extend`, {
+    method: 'POST',
+    body: JSON.stringify({ durationType, durationValue })
+  });
 }
 
 // ─── Project Plot Statuses ──────────────────────────────────────────────────────────

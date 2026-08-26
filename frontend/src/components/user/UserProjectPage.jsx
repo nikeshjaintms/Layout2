@@ -68,8 +68,8 @@ export default function UserProjectPage() {
         <div className="w-full lg:w-2/5 xl:w-1/3 flex flex-col justify-center text-left px-4 sm:px-8 lg:px-12 xl:pr-20 relative z-10 mt-8 lg:mt-0">
           <h1 className={`text-4xl sm:text-5xl lg:text-6xl xl:text-[76px] font-extrabold text-white leading-[1.1] mb-4 sm:mb-6 tracking-tight transition-all duration-1000 delay-150 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             Your Project.<br/>
-            Your Platform.<br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#0066ff] to-cyan-400 block mt-1 sm:mt-2">
+            Your&nbsp;Platform.<br/>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#4b5cd1] to-[#303a8e] block mt-1 sm:mt-2">
               Your Digital Experience.
             </span>
           </h1>
@@ -77,7 +77,7 @@ export default function UserProjectPage() {
             Host, manage and showcase your plotting projects with an interactive experience built for modern developers.
           </p>
           <div className={`transition-all duration-1000 delay-500 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <button className="w-full sm:w-auto group relative bg-gradient-to-r from-[#0066ff] to-cyan-500 hover:opacity-90 text-white font-bold py-3.5 sm:py-4 px-8 sm:px-10 rounded-xl transition-all duration-300 shadow-[0_0_30px_-5px_rgba(0,102,255,0.5)] hover:shadow-[0_0_40px_0px_rgba(0,102,255,0.7)] flex items-center justify-center gap-3 overflow-hidden">
+            <button className="w-full sm:w-auto group relative bg-gradient-to-r from-[#4b5cd1] to-[#303a8e] hover:opacity-90 text-white font-bold py-3.5 sm:py-4 px-8 sm:px-10 rounded-xl transition-all duration-300 shadow-[0_0_30px_-5px_rgba(48,58,142,0.5)] hover:shadow-[0_0_40px_0px_rgba(48,58,142,0.7)] flex items-center justify-center gap-3 overflow-hidden">
               <span className="relative z-10 text-lg">Get Plot</span>
               <span className="relative z-10 group-hover:translate-x-1 transition-transform duration-300">&rarr;</span>
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out" />

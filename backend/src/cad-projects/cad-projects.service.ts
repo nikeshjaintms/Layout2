@@ -26,6 +26,8 @@ export class CadProjectsService {
       data: { 
         name: data.name,
         ownerId: ownerId,
+        adminActive: true,
+        clientActive: true,
         plotStatuses: {
           create: [
             { name: 'Available', fillColor: '#22c55e' },
@@ -57,7 +59,13 @@ export class CadProjectsService {
         where,
         include: {
           _count: {
-            select: { conversions: true }
+            select: { conversions: true, plots: true }
+          },
+          owner: {
+            select: {
+              name: true,
+              email: true
+            }
           }
         },
         orderBy: { updatedAt: 'desc' },
@@ -78,6 +86,16 @@ export class CadProjectsService {
 
   async findPublic() {
     return this.prisma.cadProject.findMany({
+      where: { 
+        adminActive: true,
+        clientActive: true,
+        owner: {
+          subscription: {
+            status: 'ACTIVE',
+            endDate: { gt: new Date() }
+          }
+        }
+      },
       include: {
         _count: {
           select: { 
@@ -92,7 +110,7 @@ export class CadProjectsService {
 
   async findPublicOne(id: number) {
     const project = await this.prisma.cadProject.findUnique({
-      where: { id },
+      where: { id, adminActive: true, clientActive: true },
       include: {
         conversions: {
           orderBy: { createdAt: 'desc' }
@@ -151,5 +169,50 @@ export class CadProjectsService {
     return this.prisma.cadProject.delete({
       where: { id }
     });
+  }
+  async updateStatus(id: number, active: boolean, user: any) {
+    const project = await this.prisma.cadProject.findUnique({
+      where: { id },
+      include: {
+        owner: {
+          include: { subscription: true }
+        }
+      }
+    });
+
+    if (!project) throw new NotFoundException('Project not found');
+
+    const subscription = project.owner?.subscription;
+    const isSubscriptionActive = subscription && subscription.status === 'ACTIVE' && subscription.endDate.getTime() > new Date().getTime();
+
+    if (user.role === 'CLIENT') {
+      if (project.ownerId !== user.id) {
+        throw new ForbiddenException('You do not have permission to access this project');
+      }
+      if (active && !project.adminActive) {
+        throw new ForbiddenException('Project activation requires admin approval.');
+      }
+      if (active && !isSubscriptionActive) {
+        throw new ForbiddenException('Your subscription is inactive or expired. Please contact admin.');
+      }
+      return this.prisma.cadProject.update({
+        where: { id },
+        data: { clientActive: active }
+      });
+    } else if (user.role === 'ADMIN') {
+      if (active && !isSubscriptionActive) {
+        if (!subscription) throw new ForbiddenException('Subscription not found.');
+        if (subscription.status !== 'ACTIVE') {
+          throw new ForbiddenException('Subscription is inactive. Please activate the subscription before activating this project.');
+        } else {
+          throw new ForbiddenException('Subscription has expired. Please extend the subscription before activating this project.');
+        }
+      }
+      return this.prisma.cadProject.update({
+        where: { id },
+        data: { adminActive: active, ...(active && { clientActive: true }) }
+      });
+    }
+    throw new ForbiddenException('Invalid role for status update');
   }
 }

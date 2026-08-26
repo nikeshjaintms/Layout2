@@ -168,7 +168,7 @@ const calculateArrowPath = (start, end, strokeW) => {
   return `M ${head1.x} ${head1.y} L ${end.x} ${end.y} L ${head2.x} ${head2.y} M ${start.x} ${start.y} L ${end.x} ${end.y}`;
 };
 
-export default function TransformControls({ shape, shapeId, svgRef, scale, onTransformCommit }) {
+export default function TransformControls({ shape, shapeId, svgRef, scale, onTransformCommit, snapPoint }) {
   const [bbox, setBBox] = useState(null);
   const [liveTransformStr, setLiveTransformStr] = useState(null);
   const liveAttributesRef = useRef(null);
@@ -626,7 +626,8 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
           attrs = applyGeometryScale(attrs, shape.type, pivotX, pivotY, sx, sy);
         } else if (dragType.current.startsWith('point-')) {
           // Point Editing logic (Identity Transform Space)
-          const localPt = currentSvg; // Since Geometry has no transforms, svg point == local point
+          let localPt = currentSvg; // Since Geometry has no transforms, svg point == local point
+          if (snapPoint) localPt = snapPoint(localPt);
           
           if (shape.type === 'line') {
             if (dragType.current === 'point-start') {
@@ -641,41 +642,39 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
               pts[ptIndex * 2] = localPt.x; pts[ptIndex * 2 + 1] = localPt.y;
               attrs.points = pts.join(' ');
             }
-          } else if (shape.type === 'path') {
-            if (attrs['data-cad-type'] === 'arrow') {
-              if (dragType.current === 'point-arrow-start') {
-                attrs['data-start-x'] = localPt.x; attrs['data-start-y'] = localPt.y;
-              } else if (dragType.current === 'point-arrow-end') {
-                attrs['data-end-x'] = localPt.x; attrs['data-end-y'] = localPt.y;
-              }
-              const p1 = { x: parseFloat(attrs['data-start-x']), y: parseFloat(attrs['data-start-y']) };
-              const p2 = { x: parseFloat(attrs['data-end-x']), y: parseFloat(attrs['data-end-y']) };
-              attrs.d = calculateArrowPath(p1, p2, parseFloat(attrs['stroke-width'] || 2));
-            } else {
-              const dStr = startAttributes.current.d || '';
-              const regex = /([a-zA-Z]+)|([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)/g;
-              const tokens = [];
-              let match;
-              while ((match = regex.exec(dStr)) !== null) tokens.push(match[0]);
-              
-              const ptId = dragType.current.replace('point-path-', '');
-              const pairIndex = parseInt(ptId);
-              
-              // Generic path / arrow editing
-              let pairCount = 0;
-              for (let i = 0; i < tokens.length; i++) {
-                if (!isNaN(tokens[i]) && i + 1 < tokens.length && !isNaN(tokens[i+1])) {
-                  if (pairCount === pairIndex) {
-                    tokens[i] = localPt.x;
-                    tokens[i+1] = localPt.y;
-                    break;
-                  }
-                  pairCount++;
-                  i++;
-                }
-              }
-              attrs.d = tokens.join(' ');
+          } else if (shape.type === 'path' && shape.attributes['data-cad-type'] === 'arrow') {
+            if (dragType.current === 'point-arrow-start') {
+              attrs['data-start-x'] = localPt.x; attrs['data-start-y'] = localPt.y;
+            } else if (dragType.current === 'point-arrow-end') {
+              attrs['data-end-x'] = localPt.x; attrs['data-end-y'] = localPt.y;
             }
+            const p1 = { x: parseFloat(attrs['data-start-x']), y: parseFloat(attrs['data-start-y']) };
+            const p2 = { x: parseFloat(attrs['data-end-x']), y: parseFloat(attrs['data-end-y']) };
+            attrs.d = calculateArrowPath(p1, p2, parseFloat(attrs['stroke-width'] || 2));
+          } else {
+            const dStr = startAttributes.current.d || '';
+            const regex = /([a-zA-Z]+)|([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)/g;
+            const tokens = [];
+            let match;
+            while ((match = regex.exec(dStr)) !== null) tokens.push(match[0]);
+            
+            const ptIdStr = dragType.current.replace('point-path-', '').replace('point-', '');
+            const pairIndex = parseInt(ptIdStr);
+            
+            // Generic path / arrow editing
+            let pairCount = 0;
+            for (let i = 0; i < tokens.length; i++) {
+              if (!isNaN(tokens[i]) && i + 1 < tokens.length && !isNaN(tokens[i+1])) {
+                if (pairCount === pairIndex) {
+                  tokens[i] = localPt.x;
+                  tokens[i+1] = localPt.y;
+                  break;
+                }
+                pairCount++;
+                i++;
+              }
+            }
+            attrs.d = tokens.join(' ');
           }
         }
 
@@ -927,20 +926,24 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
           />
         ))}
 
-        {/* Geometry Rotation Handle */}
-        <line
-          x1={dynBbox.x + dynBbox.width / 2} y1={dynBbox.y}
-          x2={dynBbox.x + dynBbox.width / 2} y2={dynBbox.y - rotLineLen}
-          stroke="#3b82f6" strokeWidth={strokeW}
-          pointerEvents="none"
-        />
-        <circle
-          cx={dynBbox.x + dynBbox.width / 2} cy={dynBbox.y - rotLineLen}
-          r={handleSize / 1.5}
-          fill="#ffffff" stroke="#3b82f6" strokeWidth={strokeW}
-          cursor="crosshair" pointerEvents="all"
-          onPointerDown={(e) => handlePointerDown(e, 'rotate')}
-        />
+        {shape.type === 'path' && (
+          <g>
+            {/* Geometry Rotation Handle */}
+            <line
+              x1={dynBbox.x + dynBbox.width / 2} y1={dynBbox.y}
+              x2={dynBbox.x + dynBbox.width / 2} y2={dynBbox.y - rotLineLen}
+              stroke="#3b82f6" strokeWidth={strokeW}
+              pointerEvents="none"
+            />
+            <circle
+              cx={dynBbox.x + dynBbox.width / 2} cy={dynBbox.y - rotLineLen}
+              r={handleSize / 1.5}
+              fill="#ffffff" stroke="#3b82f6" strokeWidth={strokeW}
+              cursor="crosshair" pointerEvents="all"
+              onPointerDown={(e) => handlePointerDown(e, 'rotate')}
+            />
+          </g>
+        )}
 
       </g>
     );
@@ -959,20 +962,24 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
         {/* Central Move Handle */}
         {renderMoveHandle(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)}
 
-        {/* Rotation Handle */}
-        <line
-          x1={bbox.x + bbox.width / 2} y1={bbox.y}
-          x2={bbox.x + bbox.width / 2} y2={bbox.y - rotLineLen}
-          stroke="#3b82f6" strokeWidth={strokeW}
-          pointerEvents="none"
-        />
-        <circle
-          cx={bbox.x + bbox.width / 2} cy={bbox.y - rotLineLen}
-          r={handleSize / 1.5}
-          fill="#ffffff" stroke="#3b82f6" strokeWidth={strokeW}
-          cursor="crosshair" pointerEvents="all"
-          onPointerDown={(e) => handlePointerDown(e, 'rotate')}
-        />
+        {shape.type === 'path' && (
+          <g>
+            {/* Rotation Handle */}
+            <line
+              x1={bbox.x + bbox.width / 2} y1={bbox.y}
+              x2={bbox.x + bbox.width / 2} y2={bbox.y - rotLineLen}
+              stroke="#3b82f6" strokeWidth={strokeW}
+              pointerEvents="none"
+            />
+            <circle
+              cx={bbox.x + bbox.width / 2} cy={bbox.y - rotLineLen}
+              r={handleSize / 1.5}
+              fill="#ffffff" stroke="#3b82f6" strokeWidth={strokeW}
+              cursor="crosshair" pointerEvents="all"
+              onPointerDown={(e) => handlePointerDown(e, 'rotate')}
+            />
+          </g>
+        )}
 
         {[
           { x: bbox.x, y: bbox.y, cursor: 'nwse-resize', type: 'resize-nw' },

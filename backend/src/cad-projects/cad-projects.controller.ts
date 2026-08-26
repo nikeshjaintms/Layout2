@@ -108,4 +108,14 @@ export class CadProjectsController {
   remove(@Param('id') id: string, @Req() req: any) {
     return this.cadProjectsService.remove(+id, req.user);
   }
+
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('edit-project')
+  @Patch(':id/status')
+  async updateStatus(@Param('id') id: string, @Body() body: { active: boolean }, @Req() req: any) {
+    if (typeof body.active !== 'boolean') {
+      throw new BadRequestException('active must be a boolean');
+    }
+    return this.cadProjectsService.updateStatus(+id, body.active, req.user);
+  }
 }

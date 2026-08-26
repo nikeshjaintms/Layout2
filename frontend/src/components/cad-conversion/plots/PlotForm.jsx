@@ -85,6 +85,7 @@ export default function PlotForm({ projectId, plotId, initialData }) {
   
   const statuses = useSelector(state => state.plotStatuses.items);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState([]);
   const isEditing = !!plotId;
   
   const emptyForm = { 
@@ -119,6 +120,43 @@ export default function PlotForm({ projectId, plotId, initialData }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    let hasErrors = false;
+    const newErrors = formList.map(plot => {
+      const plotErrors = {};
+      
+      const pNum = (plot.plotNumber || '').trim();
+      if (!pNum) {
+        plotErrors.plotNumber = 'Plot Number is required.';
+        hasErrors = true;
+      }
+
+      const hasEmptyDimension = plot.dimensions.some(d => !d.value || isNaN(parseFloat(d.value)));
+      if (hasEmptyDimension) {
+        plotErrors.dimensions = 'All dimension values must be filled.';
+        hasErrors = true;
+      }
+
+      if (!plot.statusId) {
+        plotErrors.statusId = 'Status is required.';
+        hasErrors = true;
+      }
+      
+      return plotErrors;
+    });
+
+    if (hasErrors) {
+      setErrors(newErrors);
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation Error',
+        text: 'Please fill in all required fields.',
+        background: '#18181b', color: '#fff'
+      });
+      return;
+    }
+    
+    setErrors([]);
     setLoading(true);
     try {
       if (isEditing) {
@@ -197,7 +235,7 @@ export default function PlotForm({ projectId, plotId, initialData }) {
           </div>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {formList.map((formData, index) => {
             const updateField = (field, value) => {
               const newList = [...formList];
@@ -222,7 +260,8 @@ export default function PlotForm({ projectId, plotId, initialData }) {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2 md:col-span-1">
                     <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Plot Number *</label>
-                    <input required type="text" value={formData.plotNumber ?? ''} onChange={e => updateField('plotNumber', e.target.value)} className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all" placeholder="e.g. A-101" />
+                    <input type="text" value={formData.plotNumber ?? ''} onChange={e => updateField('plotNumber', e.target.value)} className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all" placeholder="e.g. A-101" />
+                    {errors[index]?.plotNumber && <div className="text-red-400 text-xs font-bold mt-2">{errors[index].plotNumber}</div>}
                   </div>
                   
                   <div className="col-span-2 md:col-span-1">
@@ -250,6 +289,7 @@ export default function PlotForm({ projectId, plotId, initialData }) {
 
                   <div className="col-span-2 space-y-4">
                     <label className="block text-sm font-bold text-white uppercase tracking-wider">Dimensions</label>
+                    {errors[index]?.dimensions && <div className="text-red-400 text-xs font-bold mb-2">{errors[index].dimensions}</div>}
                     <div className="flex flex-col gap-3">
                       {formData.dimensions.map((dim, dIdx) => (
                         <DimensionRow 
@@ -295,6 +335,7 @@ export default function PlotForm({ projectId, plotId, initialData }) {
                         <option key={s.id} value={s.id} className="bg-[#0f111a] text-white">{s.name}</option>
                       ))}
                     </select>
+                    {errors[index]?.statusId && <div className="text-red-400 text-xs font-bold mt-2">{errors[index].statusId}</div>}
                   </div>
                 </div>
               </div>

@@ -148,9 +148,9 @@ export default function UserFooter() {
       {/* Floating Scroll to Top Button (Far Right) */}
       <button 
         onClick={scrollToTop}
-        className="absolute right-8 bottom-10 w-14 h-14 rounded-full bg-[#0066ff] hover:bg-[#00c8ff] text-white flex items-center justify-center shadow-[0_0_20px_rgba(0,102,255,0.5)] transition-all duration-300 hover:scale-110 animate-bounce group z-50 hidden md:flex"
+        className="absolute right-8 bottom-10 w-14 h-14 rounded-full bg-[#303a8e] hover:bg-[#4b5cd1] text-white flex items-center justify-center shadow-[0_0_20px_rgba(48,58,142,0.5)] transition-all duration-300 hover:scale-110 animate-bounce group z-50 hidden md:flex"
       >
-        <div className="absolute inset-0 rounded-full bg-[#00c8ff] opacity-0 group-hover:animate-ping" />
+        <div className="absolute inset-0 rounded-full bg-[#4b5cd1] opacity-0 group-hover:animate-ping" />
         <ArrowUp className="w-6 h-6 relative z-10" strokeWidth={2.5} />
       </button>
 

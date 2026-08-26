@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     if (status === 'authenticated' && user) {
@@ -41,115 +43,141 @@ export default function LoginPage() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    dispatch(login({ email, password }));
+    setEmailError('');
+    setPasswordError('');
+    dispatch(clearError());
+
+    // Trim whitespace
+    const cleanEmail = email.trim();
+    const cleanPassword = password.trim();
+
+    let hasError = false;
+
+    // Check for empty fields
+    if (!cleanEmail) {
+      setEmailError('Please fill out the Email field.');
+      hasError = true;
+    } else if (/\s/.test(cleanEmail)) {
+      setEmailError('Whitespace is not allowed in Email.');
+      hasError = true;
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cleanEmail)) {
+        setEmailError('Please enter a valid Email address.');
+        hasError = true;
+      }
+    }
+
+    if (!cleanPassword) {
+      setPasswordError('Please fill out the Password field.');
+      hasError = true;
+    } else if (/\s/.test(cleanPassword)) {
+      setPasswordError('Whitespace is not allowed in Password.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    dispatch(login({ email: cleanEmail, password: cleanPassword }));
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden font-sans select-none">
-      {/* Background Image with Overlay */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover sm:bg-[length:100%_100%] bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/background.png')" }}
+    <div className="min-h-screen flex w-full bg-[#0a0c14] font-sans select-none overflow-hidden relative items-center justify-center px-4">
+
+      {/* FULL BACKGROUND IMAGE */}
+      <div
+        className="absolute inset-0 bg-[length:100%_100%] bg-center bg-no-repeat z-0"
+        style={{ backgroundImage: "url('/Background3.png')" }}
       >
-        <div className="absolute inset-0 bg-[#0f111a]/40"></div>
-        {/* Subtle grid pattern for futuristic feel */}
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+        {/* Subtle dark overlay to ensure readability if needed, but mockup looks fairly bright on left */}
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="relative z-10 w-full max-w-lg px-6 flex flex-col items-center">
-        
-        {/* Login Form Container */}
-        <div className="relative z-10 w-full bg-transparent backdrop-blur-[2px] border border-white/10 rounded-[2rem] sm:rounded-[2.5rem] p-8 sm:p-12 md:p-14 shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex flex-col items-center transition-all duration-700 ease-out hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,200,255,0.15)] hover:border-white/20 hover:backdrop-blur-sm group">
-          
-          {/* Subtle animated glass shine on hover */}
-          <div className="absolute inset-0 rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+      {/* LOGIN CARD */}
+      <div className="w-full max-w-[500px] bg-[#1b2b4c] border border-white/30 rounded-[2.5rem] p-10 sm:p-14 min-h-[600px] relative z-10 shadow-2xl flex flex-col justify-center">
 
-          <div className="mb-12 sm:mb-16 text-center relative flex flex-col items-center w-full z-10">
-            <div className="w-10 sm:w-12 h-1.5 bg-[#00c8ff] rounded-full mb-5 sm:mb-8 shadow-[0_0_12px_rgba(0,200,255,0.8)]"></div>
-            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-[0.25em] sm:tracking-[0.4em] ml-[0.25em] sm:ml-[0.4em] drop-shadow-md">
-              LOGIN
-            </h1>
-            {error && (
-              <div className="mt-6 text-[#ff4081] font-bold text-sm sm:text-base">
-                {error}
-              </div>
-            )}
+        {/* Header Section */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <img src="/techomax1.png" alt="Techomax Solution" className="h-20 sm:h-24 object-contain mb-8" onError={(e) => { e.target.style.display = 'none' }} />
+          <h1 className="text-[28px] font-semibold text-white mb-2 tracking-tight">
+            Welcome Back!
+          </h1>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-semibold text-center">
+            {error}
           </div>
+        )}
 
-          <form onSubmit={handleLogin} className="space-y-8 sm:space-y-10 w-full relative z-10">
-            
-            {/* Email Field */}
-            <div className="relative pt-3">
-              <div className="absolute -top-1 left-5 sm:left-7 z-10 flex items-center bg-[#0a0d16] px-4 sm:px-5 py-1.5 rounded-full border border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                <span className="text-[10px] sm:text-xs font-black text-[#8ba0b8] uppercase tracking-widest">Email <span className="text-[#ff4081] ml-1">*</span></span>
-              </div>
+        {/* Form */}
+        <form onSubmit={handleLogin} noValidate className="space-y-8 mt-2">
+
+          {/* Email Field */}
+          <div>
+            <div className="relative flex items-center">
+              <Mail className="absolute left-4 text-gray-400" size={20} />
               <input
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-6 sm:px-8 py-4 sm:py-5 bg-[#0a0d16] border border-white/10 rounded-xl sm:rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-white/30 focus:bg-[#0c101a] transition-all duration-300 text-base font-medium shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"
-                placeholder="admin@techomax.com"
+                onChange={(e) => setEmail(e.target.value.replace(/\s/g, ''))}
+                onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
+                className="w-full pl-12 pr-4 py-4 bg-[#0f172a] border border-[#1e2f4a] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#f97316] focus:ring-1 focus:ring-[#f97316] transition-all text-sm font-medium shadow-[inset_0_3px_6px_rgba(0,0,0,0.4)]"
+                placeholder="Email or Mobile Number"
               />
             </div>
+            {emailError && <div className="text-[#ff4081] text-xs font-bold mt-1.5 ml-1">{emailError}</div>}
+          </div>
 
-            {/* Password Field */}
-            <div className="relative pt-3">
-              <div className="absolute -top-1 left-5 sm:left-7 z-10 flex items-center bg-[#0a0d16] px-4 sm:px-5 py-1.5 rounded-full border border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                <span className="text-[10px] sm:text-xs font-black text-[#8ba0b8] uppercase tracking-widest">Password <span className="text-[#ff4081] ml-1">*</span></span>
-              </div>
+          {/* Password Field */}
+          <div>
+            <div className="relative flex items-center">
+              <Lock className="absolute left-4 text-gray-400" size={20} />
               <input
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-6 sm:pl-8 pr-14 sm:pr-16 py-4 sm:py-5 bg-[#0a0d16] border border-white/10 rounded-xl sm:rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-white/30 focus:bg-[#0c101a] transition-all duration-300 text-base font-medium tracking-widest shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"
-                placeholder="••••••••"
+                onChange={(e) => setPassword(e.target.value.replace(/\s/g, ''))}
+                onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }}
+                className="w-full pl-12 pr-12 py-4 bg-[#0f172a] border border-[#1e2f4a] rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#f97316] focus:ring-1 focus:ring-[#f97316] transition-all text-sm font-medium shadow-[inset_0_3px_6px_rgba(0,0,0,0.4)] tracking-widest"
+                placeholder="Password"
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 mt-1.5 text-slate-500 hover:text-white transition-colors p-2"
+                className="absolute right-4 text-gray-500 hover:text-white transition-colors p-2"
               >
                 {showPassword ? <EyeOff size={20} strokeWidth={2} /> : <Eye size={20} strokeWidth={2} />}
               </button>
             </div>
+            {passwordError && <div className="text-[#ff4081] text-xs font-bold mt-1.5 ml-1">{passwordError}</div>}
+          </div>
 
-            {/* Login Button */}
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className="w-full mt-10 sm:mt-12 py-4 sm:py-5 bg-gradient-to-r from-[#00c8ff] to-[#0066FF] hover:from-[#00b0e6] hover:to-[#0055d4] border border-[#00c8ff]/50 text-white font-bold rounded-xl sm:rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(0,200,255,0.4)] hover:shadow-[0_0_30px_rgba(0,200,255,0.6)] hover:scale-[1.02] active:scale-[0.98]"
-            >
-              {status === 'loading' ? (
-                <Loader2 size={24} className="animate-spin text-white" />
-              ) : (
-                <>
-                  <span className="text-[14px] sm:text-[15px] font-black tracking-widest uppercase">LOGIN NOW</span>
-                  <ArrowRight size={20} strokeWidth={2.5} className="text-white/80 group-hover:text-white group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-          </form>
-        </div>
+
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={status === 'loading'}
+            className="w-full mt-10 py-4 sm:py-5 bg-gradient-to-r from-[#ff7a00] to-[#e05a00] hover:from-[#ff8a1a] hover:to-[#f06400] text-white font-bold tracking-wider uppercase rounded-xl flex items-center justify-center gap-3 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_6px_16px_rgba(224,90,0,0.3)] hover:shadow-[0_8px_20px_rgba(224,90,0,0.4)] hover:-translate-y-0.5 relative group"
+          >
+            {status === 'loading' ? (
+              <Loader2 size={22} className="animate-spin text-white" />
+            ) : (
+              <>
+                <span>SIGN IN</span>
+                <div className="absolute right-4 p-1.5 bg-black/10 rounded-md group-hover:bg-black/20 transition-colors">
+                  <ArrowRight size={18} strokeWidth={3} className="text-white group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </>
+            )}
+          </button>
+        </form>
+
+
 
       </div>
-
-      {/* Footer Branding */}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center z-10 px-4">
-        <Link 
-          href="https://techomaxsolution.com/" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 group px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-[#0a0c14]/80 backdrop-blur-sm border border-[#00c8ff]/30 hover:border-[#00c8ff]/60 hover:bg-[#00c8ff]/5 transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,200,255,0.15)] max-w-full"
-        >
-          <span className="text-[10px] sm:text-sm font-bold text-[#8ba0b8] group-hover:text-[#00c8ff] transition-colors tracking-wider uppercase truncate">
-            Powered by <span className="text-[#00c8ff]">Techomax Solutions</span>
-          </span>
-        </Link>
-      </div>
-
     </div>
   );
 }

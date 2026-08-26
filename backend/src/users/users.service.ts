@@ -51,7 +51,8 @@ export class UsersService {
           email: true,
           createdAt: true,
           updatedAt: true,
-          role: { select: { id: true, name: true } }
+          role: { select: { id: true, name: true } },
+          subscription: true
         }
       }),
       this.prisma.user.count({ where })
@@ -75,7 +76,8 @@ export class UsersService {
         email: true,
         createdAt: true,
         updatedAt: true,
-        role: { select: { id: true, name: true } }
+        role: { select: { id: true, name: true } },
+        subscription: true
       }
     });
     if (!user) {

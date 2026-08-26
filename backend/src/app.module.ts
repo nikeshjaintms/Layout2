@@ -16,6 +16,7 @@ import { ProjectBoundaryModule } from './project-boundary/project-boundary.modul
 import { ProjectAppearanceSettingsModule } from './project-appearance-settings/project-appearance-settings.module';
 import { ProjectGalleryModule } from './project-gallery/project-gallery.module';
 import { RolesModule } from './roles/roles.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RolesModule } from './roles/roles.module';
     ProjectAppearanceSettingsModule,
     ProjectGalleryModule,
     RolesModule,
+    SubscriptionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

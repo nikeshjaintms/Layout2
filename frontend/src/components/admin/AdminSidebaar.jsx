@@ -43,6 +43,14 @@ export default function AdminSidebaar() {
       subject: 'role'
     },
     {
+      name: 'Subscriptions',
+      href: '/admin/subscriptions',
+      activeMatch: '/admin/subscriptions',
+      icon: Activity,
+      action: 'sidebar',
+      subject: 'user' // piggyback on user permission
+    },
+    {
       name: 'Assigned Projects',
       href: '/admin/assigned-projects',
       activeMatch: '/admin/assigned-projects',

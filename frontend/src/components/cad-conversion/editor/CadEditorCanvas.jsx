@@ -3,7 +3,7 @@ import TransformControls from './TransformControls';
 import ShapeRenderer from './ShapeRenderer';
 import { parseSvgStringToState, serializeStateToSvgString } from './SvgDocumentModel';
 import { findHitsForShape, applyVectorErase, applyPartialDelete, generateHighlightPaths } from './partialDelete';
-import { createAmenityPlacement, updateAmenityPlacement, deleteAmenityPlacement } from '@/lib/api';
+import { v4 as uuidv4 } from 'uuid';
 import AmenitiesOverlay from './AmenitiesOverlay';
 import SelectedPlotGeometryOverlay from './SelectedPlotGeometryOverlay';
 import usePlotRevealAnimation from '@/hooks/usePlotRevealAnimation';
@@ -1073,28 +1073,21 @@ export default function CadEditorCanvas({
     }
 
     if (amenitiesToPaste.length > 0) {
-      const createdAmenities = [];
       for (const amenity of amenitiesToPaste) {
-        try {
-          const newPlacement = await createAmenityPlacement({
-            amenityId: amenity.amenityId,
-            projectId: parseInt(projectId),
-            conversionId: parseInt(conversionId),
-            x: amenity.x + 20,
-            y: amenity.y + 20,
-            width: amenity.width,
-            height: amenity.height,
-            rotation: amenity.rotation || 0,
-            layerOrder: amenity.layerOrder || 0
-          });
-          createdAmenities.push(newPlacement);
-          newPlacementIds.push(newPlacement.id);
-        } catch (err) {
-          console.error('Failed to paste amenity:', err);
-        }
-      }
-      if (createdAmenities.length > 0) {
-        setPlacedAmenities(prev => [...prev, ...createdAmenities]);
+        const newPlacement = {
+          id: `temp-${Date.now()}-${Math.random()}`,
+          amenityId: amenity.amenityId,
+          projectId: parseInt(projectId),
+          conversionId: parseInt(conversionId),
+          x: amenity.x + 20,
+          y: amenity.y + 20,
+          width: amenity.width,
+          height: amenity.height,
+          rotation: amenity.rotation || 0,
+          layerOrder: amenity.layerOrder || 0
+        };
+        setPlacedAmenities(prev => [...prev, newPlacement]);
+        newPlacementIds.push(newPlacement.id);
       }
     }
 
@@ -1249,9 +1242,7 @@ export default function CadEditorCanvas({
 
             if (hasAmenities) {
               for (const id of selectedPlacementIds) {
-                deleteAmenityPlacement(id).then(() => {
-                  setPlacedAmenities(prev => prev.filter(p => p.id !== id));
-                }).catch(console.error);
+                setPlacedAmenities(prev => prev.filter(p => p.id !== id));
               }
             }
 
@@ -1375,6 +1366,44 @@ export default function CadEditorCanvas({
     });
   };
 
+  const snapToGeometry = (internalCoords) => {
+    if (!internalCoords || isSpaceDownRef.current) return internalCoords; // Hold space to disable snapping
+    let nearest = null;
+    let minDist = Infinity;
+    const snapRadius = 15 / (transformRef.current?.k || 1); 
+
+    const checkPt = (x, y) => {
+      if (isNaN(x) || isNaN(y)) return;
+      const dist = Math.hypot(internalCoords.x - x, internalCoords.y - y);
+      if (dist < snapRadius && dist < minDist) {
+        minDist = dist;
+        nearest = { x, y };
+      }
+    };
+
+    const traverse = (shapes) => {
+      for (const shape of shapes) {
+        if (shape.type === 'line') {
+          checkPt(parseFloat(shape.attributes.x1), parseFloat(shape.attributes.y1));
+          checkPt(parseFloat(shape.attributes.x2), parseFloat(shape.attributes.y2));
+        } else if (shape.type === 'polyline' || shape.type === 'polygon') {
+          const pts = (shape.attributes.points || '').trim().split(/[\s,]+/);
+          for (let i = 0; i < pts.length; i += 2) {
+            if (pts[i] && pts[i+1]) {
+              checkPt(parseFloat(pts[i]), parseFloat(pts[i+1]));
+            }
+          }
+        } else if (shape.type === 'path' && shape.attributes['data-cad-type'] === 'arrow') {
+          checkPt(parseFloat(shape.attributes['data-start-x']), parseFloat(shape.attributes['data-start-y']));
+          checkPt(parseFloat(shape.attributes['data-end-x']), parseFloat(shape.attributes['data-end-y']));
+        }
+        if (shape.children) traverse(shape.children);
+      }
+    };
+    traverse(documentState.shapes);
+    return nearest || internalCoords;
+  };
+
   const handlePointerDown = (e) => {
     // Deselect placements when clicking on empty canvas
     if (activeTool === 'pointer' && e.button === 0 && selectedPlacementIds.length > 0) {
@@ -1469,7 +1498,7 @@ export default function CadEditorCanvas({
     if (activeTool === 'draw_line' || activeTool === 'draw_circle' || activeTool === 'draw_arrow' || activeTool === 'draw_curve') {
       if (e.button === 0) {
         if (selectedShapeIds.length > 0) setSelectedShapeIds([]);
-        const internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
+        const internalCoords = snapToGeometry(getSvgInternalCoords(e.clientX, e.clientY));
         if (internalCoords) {
           if (activeTool === 'draw_curve' && drawStart && drawStep === 1) {
             setDrawEnd(internalCoords);
@@ -1487,8 +1516,19 @@ export default function CadEditorCanvas({
       }
     } else if (activeTool === 'draw_polygon' && e.button === 0) {
       if (selectedShapeIds.length > 0) setSelectedShapeIds([]);
-      const internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
+      let internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
       if (internalCoords) {
+        if (drawPointsRef.current.length > 1) {
+          const firstPt = drawPointsRef.current[0];
+          const scale = transformRef.current?.k || 1;
+          if (Math.hypot(internalCoords.x - firstPt.x, internalCoords.y - firstPt.y) * scale < 15) {
+            internalCoords = { x: firstPt.x, y: firstPt.y };
+          } else {
+            internalCoords = snapToGeometry(internalCoords);
+          }
+        } else {
+          internalCoords = snapToGeometry(internalCoords);
+        }
         const now = Date.now();
         const lastClick = lastPolygonClickRef.current;
         const timeDiff = now - lastClick.time;
@@ -1508,6 +1548,12 @@ export default function CadEditorCanvas({
             setDrawPoints([]);
             setCurrentDrawCoords(null);
           }
+        } else if (drawPointsRef.current.length > 1 && internalCoords.x === drawPointsRef.current[0].x && internalCoords.y === drawPointsRef.current[0].y) {
+          // Closed by clicking the first point
+          const pts = [...drawPointsRef.current];
+          commitDrawingPolygon(pts);
+          setDrawPoints([]);
+          setCurrentDrawCoords(null);
         } else {
           setDrawPoints(prev => {
             // Prevent duplicate points from the first click of a double click or accidental fast clicks
@@ -1875,15 +1921,26 @@ export default function CadEditorCanvas({
     onCoordsChange(getPointerCoords(e.clientX, e.clientY));
 
     if (drawStart && (activeTool === 'draw_line' || activeTool === 'draw_circle' || activeTool === 'draw_arrow' || activeTool === 'draw_curve')) {
-      const internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
+      const internalCoords = snapToGeometry(getSvgInternalCoords(e.clientX, e.clientY));
       if (internalCoords) {
         setCurrentDrawCoords(internalCoords);
       }
     }
 
     if (drawPoints.length > 0 && activeTool === 'draw_polygon') {
-      const internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
+      let internalCoords = getSvgInternalCoords(e.clientX, e.clientY);
       if (internalCoords) {
+        if (drawPoints.length > 1) {
+          const firstPt = drawPoints[0];
+          const scale = transformRef.current?.k || 1;
+          if (Math.hypot(internalCoords.x - firstPt.x, internalCoords.y - firstPt.y) * scale < 15) {
+            internalCoords = { x: firstPt.x, y: firstPt.y };
+          } else {
+            internalCoords = snapToGeometry(internalCoords);
+          }
+        } else {
+          internalCoords = snapToGeometry(internalCoords);
+        }
         setCurrentDrawCoords(internalCoords);
       }
     }
@@ -2218,9 +2275,7 @@ export default function CadEditorCanvas({
           if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
           e.preventDefault();
           for (const id of selectedPlacementIds) {
-            deleteAmenityPlacement(id).then(() => {
-              setPlacedAmenities(prev => prev.filter(p => p.id !== id));
-            }).catch(console.error);
+            setPlacedAmenities(prev => prev.filter(p => p.id !== id));
           }
           setSelectedPlacementIds([]);
         }
@@ -2238,7 +2293,8 @@ export default function CadEditorCanvas({
       const amenity = JSON.parse(data);
       const coords = getSvgInternalCoords(e.clientX, e.clientY);
       if (!coords) return;
-      const newPlacement = await createAmenityPlacement({
+      const newPlacement = {
+        id: `temp-${Date.now()}-${Math.random()}`,
         amenityId: parseInt(amenity.id),
         projectId: parseInt(projectId),
         conversionId: parseInt(conversionId),
@@ -2248,7 +2304,7 @@ export default function CadEditorCanvas({
         height: amenity.defaultHeight || 20,
         rotation: amenity.defaultRotation || 0,
         layerOrder: 0
-      });
+      };
       setPlacedAmenities(prev => [...prev, newPlacement]);
       setSelectedPlacementIds([newPlacement.id]);
     } catch (err) {
@@ -2265,7 +2321,6 @@ export default function CadEditorCanvas({
     setPlacedAmenities(prev => prev.map(p => {
       if (p.id === id) {
         const newP = { ...p, ...updates };
-        updateAmenityPlacement(id, updates).catch(console.error);
         return newP;
       }
       return p;
@@ -2625,13 +2680,13 @@ export default function CadEditorCanvas({
                 {activeTool === 'draw_curve' && drawStart && currentDrawCoords && drawStep === 1 && (
                   <line
                     x1={drawStart.x} y1={drawStart.y}
-                    x2={currentDrawCoords.x} y2={currentDrawCoords.y}
+                    x2={snapToGeometry(currentDrawCoords).x} y2={snapToGeometry(currentDrawCoords).y}
                     stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4"
                   />
                 )}
                 {activeTool === 'draw_curve' && drawStart && drawEnd && currentDrawCoords && drawStep === 2 && (
                   <path
-                    d={`M ${drawStart.x} ${drawStart.y} Q ${((drawStart.x + drawEnd.x) / 2) + (currentDrawCoords.x - drawEnd.x)} ${((drawStart.y + drawEnd.y) / 2) + (currentDrawCoords.y - drawEnd.y)} ${drawEnd.x} ${drawEnd.y}`}
+                    d={`M ${drawStart.x} ${drawStart.y} Q ${((drawStart.x + drawEnd.x) / 2) + (snapToGeometry(currentDrawCoords).x - drawEnd.x)} ${((drawStart.y + drawEnd.y) / 2) + (snapToGeometry(currentDrawCoords).y - drawEnd.y)} ${drawEnd.x} ${drawEnd.y}`}
                     fill="none" stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4"
                   />
                 )}

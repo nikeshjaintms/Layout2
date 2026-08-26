@@ -52,7 +52,7 @@ export default function UserProjectCard({ project }) {
         </h3>
         
         <div className="flex items-center text-[#8ba0b8] text-sm mb-5 group-hover:text-white/90 transition-colors duration-500">
-          <MapPin className="w-4 h-4 mr-1.5 text-[#00c8ff] group-hover:animate-bounce" />
+          <MapPin className="w-4 h-4 mr-1.5 text-[#4b5cd1] group-hover:animate-bounce" />
           <span className="truncate font-medium tracking-wide">{project.city || project.address || 'Premium Location'}</span>
         </div>
         
@@ -61,7 +61,7 @@ export default function UserProjectCard({ project }) {
         </p>
         
         <div className="flex justify-end mt-auto">
-          <div className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-white/5 group-hover:bg-[#00c8ff] text-[#00c8ff] group-hover:text-[#0a0d14] transition-all duration-500 transform group-hover:scale-110 shadow-none group-hover:shadow-[0_0_20px_rgba(0,200,255,0.6)]">
+          <div className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-white/5 group-hover:bg-[#4b5cd1] text-[#4b5cd1] group-hover:text-[#0a0d14] transition-all duration-500 transform group-hover:scale-110 shadow-none group-hover:shadow-[0_0_20px_rgba(75,92,209,0.6)]">
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out bg-gradient-to-r from-transparent via-white/30 to-transparent" />
             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 relative z-10 group-hover:translate-x-0.5 transition-transform duration-300" />
           </div>
