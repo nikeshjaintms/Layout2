@@ -89,7 +89,7 @@ export class ProjectPlotService {
     });
   }
 
-  async findAllByProject(projectId: number, pageStr?: string, limitStr?: string, search?: string, paginationStr?: string, statusIdStr?: string, assignment?: string, sortBy?: string, sortOrder?: string, user?: any) {
+  async findAllByProject(projectId: number, pageStr?: string, limitStr?: string, search?: string, paginationStr?: string, statusIdStr?: string, assignment?: string, sortBy?: string, sortOrder?: string, user?: any, conversionIdStr?: string) {
     if (user) await this.validateProjectOwnership(projectId, user);
     const pagination = paginationStr === 'false' ? false : true;
     const page = Math.max(1, parseInt(pageStr || '1', 10) || 1);
@@ -109,6 +109,19 @@ export class ProjectPlotService {
       const parsedStatus = parseInt(statusIdStr, 10);
       if (!isNaN(parsedStatus)) {
         where = { ...where, statusId: parsedStatus };
+      }
+    }
+
+    if (conversionIdStr) {
+      const parsedConversionId = parseInt(conversionIdStr, 10);
+      if (!isNaN(parsedConversionId)) {
+        where = { 
+          ...where, 
+          OR: [
+            { conversionId: parsedConversionId },
+            { conversionId: null }
+          ]
+        };
       }
     }
     
@@ -142,7 +155,7 @@ export class ProjectPlotService {
       const orderMulti = sortOrder === 'desc' ? -1 : 1;
       const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
       sortedData.sort((a, b) => {
-        return collator.compare(a.plotNumber, b.plotNumber) * orderMulti;
+        return collator.compare(a.plotNumber || '', b.plotNumber || '') * orderMulti;
       });
     }
 

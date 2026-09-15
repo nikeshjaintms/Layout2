@@ -33,7 +33,13 @@ export default function CadEditorTopBar({
   plots,
   projectConfig,
   onPlotLabelStyleChange,
-  appearanceSettings
+  appearanceSettings,
+  applyToAll,
+  onToggleApplyToAll,
+  applyToAllAnnotations,
+  onToggleApplyToAllAnnotations,
+  activeLabelStyle,
+  onActiveLabelStyleChange
 }) {
   const isDrawingTool = activeTool === 'draw_line' || activeTool === 'draw_circle' || activeTool === 'draw_curve' || activeTool === 'draw_polygon' || activeTool === 'draw_text' || activeTool === 'draw_arrow';
   
@@ -43,7 +49,9 @@ export default function CadEditorTopBar({
   
   const isSingleSelected = selectedShapes?.length === 1;
   const selectedPlot = isSingleSelected ? plots?.find(p => p.cadRegionId === selectedShape?.id) : null;
-  const isPlotMode = !!selectedPlot;
+  const isAnnotation = selectedShape && selectedShape.attributes?.['data-annotation'] === 'true';
+  const isPlotCandidate = isSingleSelected && selectedShape && !isAnnotation && ['polygon', 'path', 'rect', 'circle', 'ellipse', 'polyline'].includes(selectedShape.type);
+  const isPlotMode = !!selectedPlot || isPlotCandidate;
 
   const showStrokeUI = isDrawingTool || canEditStroke;
   
@@ -92,11 +100,20 @@ export default function CadEditorTopBar({
 
   const ToolSettings = () => {
     if (isPlotMode) {
-      const pMeta = selectedPlot.metadata || {};
+      const pMeta = selectedPlot ? (selectedPlot.metadata || {}) : (activeLabelStyle || {});
       const lblSize = pMeta.labelFontSize !== undefined && pMeta.labelFontSize !== null ? parseFloat(pMeta.labelFontSize) : (projectConfig?.labelFontSize ?? 2);
       const lblColor = pMeta.labelFontColor || projectConfig?.labelFontColor || '#ffffff';
       const lblFamily = pMeta.labelFontFamily || projectConfig?.labelFontFamily || 'sans-serif';
       const lblStrokeSize = pMeta.labelStrokeWidth !== undefined && pMeta.labelStrokeWidth !== null ? parseFloat(pMeta.labelStrokeWidth) : (projectConfig?.labelStrokeWidth ?? 0);
+
+      const handleStyleChange = (updates) => {
+        onActiveLabelStyleChange(updates);
+        if (selectedPlot) {
+          onPlotLabelStyleChange(selectedPlot.id, updates);
+        } else if (applyToAll) {
+          onPlotLabelStyleChange(null, updates);
+        }
+      };
 
       return (
         <ConfigProvider theme={antdTheme}>
@@ -105,7 +122,7 @@ export default function CadEditorTopBar({
               <span className="hidden md:inline text-[11px] font-medium" style={{ color: headerSubText }}>Color:</span>
               <ColorPicker
                 value={lblColor}
-                onChange={(_, hex) => onPlotLabelStyleChange(selectedPlot.id, { labelFontColor: hex })}
+                onChange={(_, hex) => handleStyleChange({ labelFontColor: hex })}
                 size="small" showText format="hex"
                 styles={{ popup: { zIndex: 9999 } }}
               />
@@ -114,7 +131,7 @@ export default function CadEditorTopBar({
               <span className="hidden md:inline text-[11px] font-medium" style={{ color: headerSubText }}>Font:</span>
               <select
                 value={lblFamily}
-                onChange={(e) => onPlotLabelStyleChange(selectedPlot.id, { labelFontFamily: e.target.value })}
+                onChange={(e) => handleStyleChange({ labelFontFamily: e.target.value })}
                 className="h-7 border rounded px-2 text-[11px] focus:outline-none transition-colors"
                 style={inputStyle}
                 title="Font"
@@ -132,7 +149,7 @@ export default function CadEditorTopBar({
               <input 
                 type="number" min="0.1" step="0.1" max="100"
                 value={lblSize}
-                onChange={(e) => onPlotLabelStyleChange(selectedPlot.id, { labelFontSize: parseFloat(e.target.value) || 2 })}
+                onChange={(e) => handleStyleChange({ labelFontSize: parseFloat(e.target.value) || 2 })}
                 className="w-14 h-7 border rounded px-2 text-[11px] focus:outline-none transition-colors font-mono"
                 style={inputStyle}
                 title="Text Size"
@@ -145,16 +162,29 @@ export default function CadEditorTopBar({
                 value={lblStrokeSize}
                 onChange={(e) => {
                    const raw = e.target.value;
-                   onPlotLabelStyleChange(selectedPlot.id, { labelStrokeWidth: raw === '' ? 0 : (parseFloat(raw) || 0) });
+                   handleStyleChange({ labelStrokeWidth: raw === '' ? 0 : (parseFloat(raw) || 0) });
                 }}
                 onBlur={(e) => {
                    const v = parseFloat(e.target.value);
-                   if (isNaN(v) || v < 0) onPlotLabelStyleChange(selectedPlot.id, { labelStrokeWidth: 0 });
+                   if (isNaN(v) || v < 0) handleStyleChange({ labelStrokeWidth: 0 });
                 }}
                 className="w-14 h-7 border rounded px-2 text-[11px] focus:outline-none transition-colors font-mono"
                 style={inputStyle}
                 title="Stroke Size"
               />
+            </div>
+            
+            {/* Apply to All Toggle */}
+            <div className="flex items-center gap-2 ml-2 pl-4 border-l" style={{ borderColor: isDarkNav ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-wider" style={{ color: headerSubText }} title="Apply style changes to all plots in layout">Apply to All</span>
+              <button 
+                onClick={onToggleApplyToAll}
+                className="w-8 h-4 rounded-full relative transition-colors shrink-0"
+                style={{ backgroundColor: applyToAll ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', boxShadow: applyToAll ? `0 0 10px ${btnBg}80` : 'none' }}
+                title="Apply style changes to all plots in layout"
+              >
+                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${applyToAll ? 'left-[18px]' : 'left-0.5'}`} />
+              </button>
             </div>
           </div>
         </ConfigProvider>
@@ -205,12 +235,28 @@ export default function CadEditorTopBar({
               <span className="hidden md:inline text-[11px] font-medium" style={{ color: headerSubText }}>Color:</span>
               <ColorPicker
                 value={selectedShape ? selectedShape.attributes?.stroke : strokeColor}
-                onChange={(_, hex) => onStrokeColorChange(hex)}
+                onChange={(color, hex) => {
+                  const finalHex = typeof hex === 'string' ? hex : (typeof color === 'string' ? color : color.toHexString());
+                  onStrokeColorChange(finalHex);
+                }}
                 size="small"
                 showText
                 format="hex"
-                styles={{ popup: { zIndex: 9999 } }}
+                styles={{ popup: { zIndex: 9999, touchAction: 'none' } }}
               />
+            </div>
+          )}
+
+          {showStrokeUI && !isTextMode && (
+            <div className="flex items-center">
+              <button 
+                onClick={onToggleApplyToAllAnnotations}
+                className="relative w-7 h-4 rounded-full transition-colors border border-transparent hover:border-gray-500/50"
+                style={{ backgroundColor: applyToAllAnnotations ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', boxShadow: applyToAllAnnotations ? `0 0 10px ${btnBg}80` : 'none' }}
+                title="Apply style changes to all annotations in layout"
+              >
+                <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${applyToAllAnnotations ? 'left-[14px]' : 'left-0.5'}`} />
+              </button>
             </div>
           )}
           

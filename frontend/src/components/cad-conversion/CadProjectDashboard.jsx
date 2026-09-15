@@ -105,12 +105,12 @@ export default function CadProjectDashboard({ projectId }) {
     }
   };
 
-  if (!project) return <div className="p-8 text-white">Loading...</div>;
+  if (!project) return <div className="p-8 text-gray-900">Loading...</div>;
 
   return (
     <div className="flex flex-col h-screen bg-zinc-950 text-zinc-300">
       <header className="h-14 border-b border-zinc-800 bg-zinc-900 flex items-center px-6 shrink-0 z-50">
-        <Link href="/cad-conversion" className="text-zinc-400 hover:text-white mr-4">
+        <Link href="/cad-conversion" className="text-zinc-400 hover:text-gray-900 mr-4">
           &larr; Back
         </Link>
         <h1 className="text-lg font-semibold text-zinc-100">{project.name} Dashboard</h1>
@@ -128,7 +128,7 @@ export default function CadProjectDashboard({ projectId }) {
               </div>
               <Link 
                 href={`/cad-conversion/${projectId}/manage-plot`}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded shadow transition-colors"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-gray-900 text-sm font-medium rounded shadow transition-colors"
               >
                 Plots
               </Link>
@@ -150,21 +150,21 @@ export default function CadProjectDashboard({ projectId }) {
           
           {/* Upload Section */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 mb-8 text-center">
-            <h2 className="text-xl font-bold text-white mb-4">Upload Drawing</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Upload Drawing</h2>
             <p className="text-zinc-400 mb-6">Upload DWG or DXF files to add drawings to this project.</p>
-            <label className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded font-medium cursor-pointer transition-colors inline-block">
+            <label className="bg-indigo-600 hover:bg-indigo-500 text-gray-900 px-6 py-3 rounded font-medium cursor-pointer transition-colors inline-block">
               {isUploading ? 'Uploading...' : 'Upload DWG / DXF'}
               <input type="file" accept=".dwg,.dxf" className="hidden" onChange={handleUpload} disabled={isUploading} />
             </label>
           </div>
 
           {/* Drawings List */}
-          <h2 className="text-lg font-bold text-white mb-4">Project Drawings</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Project Drawings</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {conversions.map(conv => (
               <div key={conv.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 flex flex-col relative overflow-hidden group">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1 truncate pr-8" title={conv.originalFileName}>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate pr-8" title={conv.originalFileName}>
                     {conv.originalFileName}
                   </h3>
                   <div className="text-sm text-zinc-400 mb-4">
@@ -183,13 +183,13 @@ export default function CadProjectDashboard({ projectId }) {
                 <div className="flex flex-wrap gap-2 mt-4">
                   <button 
                     onClick={() => handleRename(conv.id, conv.originalFileName)}
-                    className="text-xs bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded transition-colors"
+                    className="text-xs bg-zinc-800 hover:bg-zinc-700 text-gray-900 px-3 py-1.5 rounded transition-colors"
                   >
                     Rename
                   </button>
                   <button 
                     onClick={() => handleDelete(conv.id)}
-                    className="text-xs bg-red-900/50 hover:bg-red-800 text-white px-3 py-1.5 rounded transition-colors"
+                    className="text-xs bg-red-900/50 hover:bg-red-800 text-gray-900 px-3 py-1.5 rounded transition-colors"
                   >
                     Delete
                   </button>
@@ -197,7 +197,7 @@ export default function CadProjectDashboard({ projectId }) {
                   {conv.status === 'SUCCESS' && (
                     <Link 
                       href={`/cad-conversion/${projectId}/editor/${conv.id}`}
-                      className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded font-medium transition-colors"
+                      className="text-xs bg-indigo-600 hover:bg-indigo-500 text-gray-900 px-4 py-1.5 rounded font-medium transition-colors"
                     >
                       Continue Editing
                     </Link>

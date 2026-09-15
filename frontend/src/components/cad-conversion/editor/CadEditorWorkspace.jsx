@@ -80,6 +80,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
 
   // Plots & Statuses
   const [plots, setPlots] = useState([]);
+  const [initialPlots, setInitialPlots] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [internalShowPlotStatus, setInternalShowPlotStatus] = useState(false);
   const showPlotStatus = showPlotStatusProp !== undefined ? showPlotStatusProp : internalShowPlotStatus;
@@ -91,6 +92,20 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
 
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+
+  // Apply to All state
+  const [applyToAll, setApplyToAll] = useState(false);
+  const [applyToAllAnnotations, setApplyToAllAnnotations] = useState(false);
+  const debouncedBulkUpdateRef = React.useRef(null);
+  
+  // Session scoped active style for new labels
+  const [activeLabelStyle, setActiveLabelStyle] = useState(null);
+
+  useEffect(() => {
+    setApplyToAll(false);
+    setApplyToAllAnnotations(false);
+    setActiveLabelStyle(null);
+  }, [conversionId]);
 
   // Mobile sidebar state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -123,6 +138,39 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
         }
       } catch (err) {
         console.error('Failed to inject labels into SVG during save:', err);
+      }
+
+      // Bulk save plot assignments by comparing current plots with initialPlots
+      if (initialPlots.length > 0 && plots.length > 0) {
+        const changedPlots = plots.filter(p => {
+          const init = initialPlots.find(ip => ip.id === p.id);
+          if (!init) return true; // new plot? (shouldn't happen here)
+          return init.cadRegionId !== p.cadRegionId || 
+                 init.conversionId !== p.conversionId || 
+                 init.x !== p.x || 
+                 init.y !== p.y || 
+                 init.rotation !== p.rotation || 
+                 init.scale !== p.scale ||
+                 JSON.stringify(init.metadata) !== JSON.stringify(p.metadata);
+        });
+
+        if (changedPlots.length > 0) {
+          await Promise.all(changedPlots.map(p => {
+            const assignmentData = {
+              cadRegionId: p.cadRegionId || null,
+              conversionId: p.conversionId || null,
+              cadObjectType: p.cadObjectType || null,
+              x: p.x || null,
+              y: p.y || null,
+              rotation: p.rotation || null,
+              scale: p.scale || 1,
+              metadata: p.metadata || null
+            };
+            return updateProjectPlotAssignment(projectId, p.id, assignmentData);
+          }));
+          // Sync initialPlots with current plots after save
+          setInitialPlots(JSON.parse(JSON.stringify(plots)));
+        }
       }
 
       const res = await authFetch(`/api/cad-conversion/${conversionId}/svg`, {
@@ -190,11 +238,22 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     }
   };
 
+  const getHistoryState = (histItem) => {
+    if (!histItem) return { svgContent: null, plots: null };
+    if (typeof histItem === 'string') return { svgContent: histItem, plots: null };
+    return histItem;
+  };
+
   const saveSvgContent = async (newSvgString) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newSvgString);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    setHistoryIndex(prevIndex => {
+      setHistory(prevHistory => {
+        const newHistory = prevHistory.slice(0, prevIndex + 1);
+        const lastPlots = newHistory.length > 0 ? getHistoryState(newHistory[newHistory.length - 1]).plots : plots;
+        newHistory.push({ svgContent: newSvgString, plots: lastPlots || plots });
+        return newHistory;
+      });
+      return prevIndex + 1;
+    });
     setSvgContent(newSvgString);
   };
 
@@ -202,7 +261,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
-      setSvgContent(history[newIndex]);
+      const state = getHistoryState(history[newIndex]);
+      if (state.svgContent) setSvgContent(state.svgContent);
+      if (state.plots) setPlots(state.plots);
     }
   };
 
@@ -210,7 +271,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
-      setSvgContent(history[newIndex]);
+      const state = getHistoryState(history[newIndex]);
+      if (state.svgContent) setSvgContent(state.svgContent);
+      if (state.plots) setPlots(state.plots);
     }
   };
 
@@ -226,7 +289,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     const updateShapes = (shapes) => {
       let changed = false;
       const result = shapes.map(s => {
-        if (selectedShapeIds.includes(s.id)) {
+        const isSelected = selectedShapeIds.includes(s.id);
+        const isTargetAnnotation = applyToAllAnnotations && s.attributes?.['data-annotation'] === 'true';
+        if (isSelected || isTargetAnnotation) {
           changed = true;
           const newAttributes = { ...s.attributes, [attrName]: value };
           if (attrName === 'stroke' || attrName === 'fill') {
@@ -246,13 +311,17 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       return { newShapes: result, childChanged: changed };
     };
 
-    setHistoryIndex(prev => prev + 1);
-    setHistory(prev => {
-      const newHist = prev.slice(0, historyIndex + 1);
-      const parsed = parseSvgStringToState(newHist[newHist.length - 1]);
-      const { newShapes } = updateShapes(parsed.shapes);
-      newHist.push(serializeStateToSvgString(newShapes, parsed.viewBox));
-      return newHist;
+    setHistoryIndex(prevIndex => {
+      setHistory(prevHistory => {
+        const newHist = prevHistory.slice(0, prevIndex + 1);
+        const lastState = getHistoryState(newHist[newHist.length - 1]);
+        const parsed = parseSvgStringToState(lastState.svgContent);
+        const { newShapes } = updateShapes(parsed.shapes);
+        const newSvg = serializeStateToSvgString(newShapes, parsed.viewBox);
+        newHist.push({ svgContent: newSvg, plots: lastState.plots || plots });
+        return newHist;
+      });
+      return prevIndex + 1;
     });
     setSvgContent(prev => {
       const parsed = parseSvgStringToState(prev);
@@ -354,15 +423,25 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
 
       Promise.all([
         fetchProject(projectId),
-        fetchPlots(projectId, { pagination: false }),
+        fetchPlots(projectId, { pagination: false, conversionId }),
         fetchStatuses(projectId, { pagination: false }),
         fetchAppearance(projectId).catch(() => null)
       ])
         .then(([proj, p, s, appearance]) => {
           setProjectConfig(proj);
           setPlots(p);
+          setInitialPlots(JSON.parse(JSON.stringify(p)));
           setStatuses(s);
           if (appearance) setAppearanceSettings(appearance);
+          
+          setHistory(prev => {
+             if (prev.length > 0) {
+               const newHist = [...prev];
+               newHist[0] = { svgContent: getHistoryState(newHist[0]).svgContent, plots: p };
+               return newHist;
+             }
+             return prev;
+          });
 
           setSvgContent(currentSvg => {
             if (!currentSvg) return currentSvg;
@@ -457,18 +536,67 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   };
 
   const handlePlotLabelStyleChange = async (plotId, newStyles) => {
-    const plot = plots.find(p => p.id === plotId);
-    if (!plot) return;
-    const currentMetadata = plot.metadata || {};
-    const newMetadata = { ...currentMetadata, ...newStyles };
+    if (applyToAll) {
+      const affectedPlots = plots.filter(p => p.cadRegionId != null && p.conversionId === conversion?.id);
+      if (affectedPlots.length === 0) return;
 
-    setPlots(prev => prev.map(p => p.id === plotId ? { ...p, metadata: newMetadata } : p));
+      let updatedPlots = [...plots];
+      affectedPlots.forEach(ap => {
+        const idx = updatedPlots.findIndex(p => p.id === ap.id);
+        if (idx !== -1) {
+          const currentMetadata = updatedPlots[idx].metadata || {};
+          updatedPlots[idx] = { ...updatedPlots[idx], metadata: { ...currentMetadata, ...newStyles } };
+        }
+      });
+      setPlots(updatedPlots);
 
-    try {
-      await updateProjectPlot(projectId, plotId, { metadata: newMetadata });
-    } catch (err) {
-      console.error('Failed to update plot label style:', err);
-      setPlots(prev => prev.map(p => p.id === plotId ? { ...p, metadata: currentMetadata } : p));
+      setHistoryIndex(prevIndex => {
+        setHistory(prevHistory => {
+           const newHistory = prevHistory.slice(0, prevIndex + 1);
+           const lastSvg = newHistory.length > 0 ? getHistoryState(newHistory[newHistory.length - 1]).svgContent : svgContent;
+           newHistory.push({ svgContent: lastSvg, plots: updatedPlots });
+           return newHistory;
+        });
+        return prevIndex + 1;
+      });
+
+      if (debouncedBulkUpdateRef.current) clearTimeout(debouncedBulkUpdateRef.current);
+      debouncedBulkUpdateRef.current = setTimeout(async () => {
+        try {
+           const promises = affectedPlots.map(ap => {
+             const meta = { ...(ap.metadata || {}), ...newStyles };
+             return updateProjectPlot(projectId, ap.id, { metadata: meta });
+           });
+           await Promise.all(promises);
+        } catch (e) {
+           console.error("Bulk update failed", e);
+        }
+      }, 300);
+
+    } else if (plotId !== null) {
+      const plot = plots.find(p => p.id === plotId);
+      if (!plot) return;
+      const currentMetadata = plot.metadata || {};
+      const newMetadata = { ...currentMetadata, ...newStyles };
+
+      const updatedPlots = plots.map(p => p.id === plotId ? { ...p, metadata: newMetadata } : p);
+      setPlots(updatedPlots);
+
+      setHistoryIndex(prevIndex => {
+        setHistory(prevHistory => {
+           const newHistory = prevHistory.slice(0, prevIndex + 1);
+           const lastSvg = newHistory.length > 0 ? getHistoryState(newHistory[newHistory.length - 1]).svgContent : svgContent;
+           newHistory.push({ svgContent: lastSvg, plots: updatedPlots });
+           return newHistory;
+        });
+        return prevIndex + 1;
+      });
+
+      try {
+        await updateProjectPlot(projectId, plotId, { metadata: newMetadata });
+      } catch (err) {
+        console.error('Failed to update plot label style:', err);
+      }
     }
   };
 
@@ -530,6 +658,12 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
           projectConfig={projectConfig}
           onPlotLabelStyleChange={handlePlotLabelStyleChange}
           appearanceSettings={appearanceSettings}
+          applyToAll={applyToAll}
+          onToggleApplyToAll={() => setApplyToAll(!applyToAll)}
+          applyToAllAnnotations={applyToAllAnnotations}
+          onToggleApplyToAllAnnotations={() => setApplyToAllAnnotations(!applyToAllAnnotations)}
+          activeLabelStyle={activeLabelStyle}
+          onActiveLabelStyleChange={(updates) => setActiveLabelStyle(prev => ({ ...(prev || {}), ...updates }))}
         />
       )}
 
@@ -654,6 +788,14 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
             fillOpacity={fillOpacity}
             eraserSize={eraserSize}
             plots={plots}
+            onRefreshPlots={() => {
+              if (projectId) {
+                const fetchPlots = readOnly ? getPublicProjectPlots : getProjectPlots;
+                fetchPlots(projectId, { pagination: false, conversionId })
+                  .then(p => setPlots(p))
+                  .catch(console.error);
+              }
+            }}
             statuses={statuses}
             masterAmenities={masterAmenities}
             projectConfig={projectConfig}
@@ -689,10 +831,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
 
               // 1. Release old plot if it's changing or being removed
               if (oldPlotId && (!plot || oldPlotId !== plot.id)) {
-                try {
-                  await updateProjectPlotAssignment(projectId, oldPlotId, { cadRegionId: null });
-                  setPlots(prev => prev.map(p => p.id === oldPlotId ? { ...p, cadRegionId: null, conversionId: null } : p));
-                } catch (e) { console.error(e); }
+                setPlots(prev => prev.map(p => p.id === oldPlotId ? { ...p, cadRegionId: null, conversionId: null } : p));
               }
 
               // 2. Assign new plot
@@ -709,21 +848,26 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
                     y = bbox.y + bbox.height / 2;
                   }
 
-                  let metadata = null;
+                  let metadata = { ...(plot.metadata || {}) };
                   if (element) {
                     const transform = element.getAttribute('transform');
                     if (transform) {
-                      metadata = { transform };
+                      metadata.transform = transform;
                     }
                   }
+                  
+                  // Apply active label style defaults if not already explicitly set on the plot
+                  if (activeLabelStyle) {
+                    metadata = { ...metadata, ...activeLabelStyle };
+                  } else {
+                    if (metadata.labelFontSize === undefined) metadata.labelFontSize = projectConfig?.labelFontSize ?? 2;
+                    if (metadata.labelFontColor === undefined) metadata.labelFontColor = projectConfig?.labelFontColor ?? '#ffffff';
+                    if (metadata.labelFontFamily === undefined) metadata.labelFontFamily = projectConfig?.labelFontFamily ?? 'sans-serif';
+                    if (metadata.labelStrokeWidth === undefined) metadata.labelStrokeWidth = projectConfig?.labelStrokeWidth ?? 0;
+                  }
 
-                  await updateProjectPlotAssignment(projectId, plot.id, {
-                    cadRegionId: regionId,
-                    conversionId: conversion?.id || null,
-                    cadObjectType,
-                    x, y, rotation, scale, metadata
-                  });
-                  setPlots(prev => prev.map(p => p.id === plot.id ? { ...p, cadRegionId: regionId, conversionId: conversion?.id, x, y, metadata } : p));
+                  // Just update React state. Database will be updated on "Save"
+                  setPlots(prev => prev.map(p => p.id === plot.id ? { ...p, cadRegionId: regionId, conversionId: conversion?.id, cadObjectType, x, y, rotation, scale, metadata } : p));
                 } catch (e) { console.error(e); }
               }
 

@@ -181,6 +181,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
   const reqFrame = useRef(null);
 
   const isGeometryType = shape && ['line', 'polyline', 'polygon', 'path'].includes(shape.type);
+  const isPlot = shape && (shape.attributes?.['data-plot-id'] || shape.attributes?.['plotId'] || shape.attributes?.['data-cad-type'] === 'plot' || shapeId?.startsWith('cad-plot-'));
 
   const applyMatrixToAttributes = (attrs, type, matrix) => {
     const transformPt = (x, y) => {
@@ -638,8 +639,20 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
           } else if (shape.type === 'polyline' || shape.type === 'polygon') {
             const ptIndex = parseInt(dragType.current.split('-')[1]);
             const pts = (startAttributes.current.points || '').trim().split(/[\s,]+/);
+            
             if (ptIndex * 2 + 1 < pts.length) {
-              pts[ptIndex * 2] = localPt.x; pts[ptIndex * 2 + 1] = localPt.y;
+              const startX = parseFloat(pts[ptIndex * 2]);
+              const startY = parseFloat(pts[ptIndex * 2 + 1]);
+              const thresholdSq = (2 / scale) ** 2;
+              
+              for (let i = 0; i < Math.floor(pts.length / 2); i++) {
+                 const ox = parseFloat(pts[i * 2]);
+                 const oy = parseFloat(pts[i * 2 + 1]);
+                 if ((ox - startX) ** 2 + (oy - startY) ** 2 < thresholdSq) {
+                   pts[i * 2] = localPt.x;
+                   pts[i * 2 + 1] = localPt.y;
+                 }
+              }
               attrs.points = pts.join(' ');
             }
           } else if (shape.type === 'path' && shape.attributes['data-cad-type'] === 'arrow') {
@@ -663,15 +676,31 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
             
             // Generic path / arrow editing
             let pairCount = 0;
+            let startX = null, startY = null;
             for (let i = 0; i < tokens.length; i++) {
               if (!isNaN(tokens[i]) && i + 1 < tokens.length && !isNaN(tokens[i+1])) {
                 if (pairCount === pairIndex) {
-                  tokens[i] = localPt.x;
-                  tokens[i+1] = localPt.y;
+                  startX = parseFloat(tokens[i]);
+                  startY = parseFloat(tokens[i+1]);
                   break;
                 }
                 pairCount++;
                 i++;
+              }
+            }
+            
+            if (startX !== null && startY !== null) {
+              const thresholdSq = (2 / scale) ** 2;
+              for (let i = 0; i < tokens.length; i++) {
+                if (!isNaN(tokens[i]) && i + 1 < tokens.length && !isNaN(tokens[i+1])) {
+                  const ox = parseFloat(tokens[i]);
+                  const oy = parseFloat(tokens[i+1]);
+                  if ((ox - startX) ** 2 + (oy - startY) ** 2 < thresholdSq) {
+                    tokens[i] = localPt.x;
+                    tokens[i+1] = localPt.y;
+                  }
+                  i++;
+                }
               }
             }
             attrs.d = tokens.join(' ');
@@ -898,6 +927,24 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
       }
     }
 
+    const filteredPoints = [];
+    const minDistanceSq = (4 / scale) ** 2; 
+    
+    for (const pt of points) {
+      let isDuplicate = false;
+      for (const existing of filteredPoints) {
+        const dx = pt.x - existing.x;
+        const dy = pt.y - existing.y;
+        if ((dx * dx + dy * dy) < minDistanceSq) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate) {
+        filteredPoints.push(pt);
+      }
+    }
+
     // Geometry handles should still respect currentTransform if it exists before bake
     return (
       <g pointerEvents="all" transform={currentTransform}>
@@ -915,7 +962,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
         )}
         
         {/* Anchor Points */}
-        {points.map((pt, index) => (
+        {filteredPoints.map((pt, index) => (
           <circle 
             key={index}
             cx={pt.x} cy={pt.y} 
@@ -926,7 +973,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
           />
         ))}
 
-        {shape.type === 'path' && (
+        {shape.type === 'path' && shape.attributes?.['data-cad-type'] === 'arrow' && (
           <g>
             {/* Geometry Rotation Handle */}
             <line
@@ -962,7 +1009,7 @@ export default function TransformControls({ shape, shapeId, svgRef, scale, onTra
         {/* Central Move Handle */}
         {renderMoveHandle(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)}
 
-        {shape.type === 'path' && (
+        {shape.type === 'path' && shape.attributes?.['data-cad-type'] === 'arrow' && (
           <g>
             {/* Rotation Handle */}
             <line

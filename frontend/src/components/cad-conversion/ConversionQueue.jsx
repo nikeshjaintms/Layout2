@@ -87,15 +87,15 @@ export default function ConversionQueue({ conversions, selectedId, onSelect, onD
   return (
     <div className="flex flex-col">
       <input type="file" ref={fileInputRef} className="hidden" accept=".dwg,.dxf" onChange={handleFileChange} />
-      <div className="px-4 py-3 border-b border-white/10 sticky top-0 bg-[#0f111a]/90 backdrop-blur z-10">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#8ba0b8]">Recent Conversions</h2>
+      <div className="px-4 py-3 border-b border-gray-200 sticky top-0 bg-white backdrop-blur z-10">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-600">Recent Conversions</h2>
       </div>
       <div className="flex flex-col">
         {conversions.map((conv) => (
           <div
             key={conv.id}
             onClick={() => onSelect(conv.id)}
-            className={`group relative flex items-start gap-3 p-4 border-b border-white/5 text-left transition-colors cursor-pointer hover:bg-white/5 touch-manipulation
+            className={`group relative flex items-start gap-3 p-4 border-b border-gray-200 text-left transition-colors cursor-pointer hover:bg-gray-50 touch-manipulation
               ${selectedId === conv.id ? 'bg-[#1d2440]/50 border-l-2 border-l-[#00c8ff] pl-[14px]' : 'border-l-2 border-l-transparent'}`}
           >
             <div className="mt-0.5 shrink-0">
@@ -108,7 +108,7 @@ export default function ConversionQueue({ conversions, selectedId, onSelect, onD
                     type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="flex-1 bg-[#0f111a] border border-white/20 rounded px-2 py-1 text-sm text-white outline-none focus:border-[#00c8ff]"
+                    className="flex-1 bg-white border border-white/20 rounded px-2 py-1 text-sm text-gray-900 outline-none focus:border-[#ABD2FA]"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') saveEdit(e, conv.id);
@@ -123,27 +123,33 @@ export default function ConversionQueue({ conversions, selectedId, onSelect, onD
                   </button>
                 </div>
               ) : (
-                <div className="text-sm font-bold text-white truncate" title={conv.originalFileName}>
+                <div className="text-sm font-bold text-gray-900 truncate" title={conv.originalFileName}>
                   {conv.originalFileName}
                 </div>
               )}
-              <div className="text-xs text-[#8ba0b8] mt-1 flex items-center gap-2 font-medium">
-                <span className={conv.isActive ? "text-[#00c8ff] font-bold" : "text-[#8ba0b8]/50"}>
+              <div className="text-xs text-gray-600 mt-1 flex items-center gap-2 font-medium flex-wrap">
+                <span className={conv.isActive ? "text-[#ABD2FA] font-bold" : "text-gray-600/50"}>
                   {conv.isActive ? "Active" : "Inactive"}
                 </span>
                 <span>•</span>
                 <span className="capitalize">{conv.status.toLowerCase()}</span>
                 <span>•</span>
                 <span>{formatDistanceToNow(new Date(conv.createdAt), { addSuffix: true })}</span>
+                {(conv.plotsDetected !== undefined && conv.plotsDetected !== null) && (
+                  <>
+                    <span>•</span>
+                    <span className="text-[#ABD2FA]">{conv.plotsDetected} plot{conv.plotsDetected === 1 ? '' : 's'}</span>
+                  </>
+                )}
               </div>
             </div>
             {/* Actions overlay — always visible on touch devices, hover-only on desktop */}
             {editingId !== conv.id && (
-              <div className="absolute right-2 top-3 flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-[#1d2440]/90 backdrop-blur-sm rounded-lg p-1 shadow-lg border border-white/10">
+              <div className="absolute right-2 top-3 flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity bg-[#1d2440]/90 backdrop-blur-sm rounded-lg p-1 shadow-lg border border-gray-200">
                 {!conv.isActive && conv.status === 'SUCCESS' && (
                   <button
                     onClick={(e) => handleActivateClick(e, conv.id)}
-                    className="text-emerald-400 hover:text-emerald-300 active:text-emerald-300 p-2 sm:p-1.5 rounded hover:bg-white/10 active:bg-white/10 transition-colors touch-manipulation text-[10px] font-bold uppercase tracking-wider"
+                    className="text-emerald-400 hover:text-emerald-300 active:text-emerald-300 p-2 sm:p-1.5 rounded hover:bg-gray-100 active:bg-white/10 transition-colors touch-manipulation text-[10px] font-bold uppercase tracking-wider"
                     title="Set as Active Layout"
                   >
                     Activate
@@ -151,21 +157,21 @@ export default function ConversionQueue({ conversions, selectedId, onSelect, onD
                 )}
                 <button
                   onClick={(e) => handleReuploadClick(e, conv.id)}
-                  className="text-[#8ba0b8] hover:text-[#00c8ff] active:text-[#00c8ff] p-2 sm:p-1.5 rounded hover:bg-white/10 active:bg-white/10 transition-colors touch-manipulation"
+                  className="text-gray-600 hover:text-[#ABD2FA] active:text-[#ABD2FA] p-2 sm:p-1.5 rounded hover:bg-gray-100 active:bg-white/10 transition-colors touch-manipulation"
                   title="Replace File"
                 >
                   <UploadCloud size={15} />
                 </button>
                 <button
                   onClick={(e) => startEdit(e, conv)}
-                  className="text-[#8ba0b8] hover:text-white active:text-white p-2 sm:p-1.5 rounded hover:bg-white/10 active:bg-white/10 transition-colors touch-manipulation"
+                  className="text-gray-600 hover:text-gray-900 active:text-gray-900 p-2 sm:p-1.5 rounded hover:bg-gray-100 active:bg-white/10 transition-colors touch-manipulation"
                   title="Rename"
                 >
                   <Edit2 size={15} />
                 </button>
                 <button
                   onClick={(e) => handleDelete(e, conv.id)}
-                  className="text-[#8ba0b8] hover:text-red-400 active:text-red-400 p-2 sm:p-1.5 rounded hover:bg-white/10 active:bg-white/10 transition-colors touch-manipulation"
+                  className="text-gray-600 hover:text-red-400 active:text-red-400 p-2 sm:p-1.5 rounded hover:bg-gray-100 active:bg-white/10 transition-colors touch-manipulation"
                   title="Delete"
                 >
                   <Trash2 size={15} />

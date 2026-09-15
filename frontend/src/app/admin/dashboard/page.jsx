@@ -6,10 +6,10 @@ export default function AdminDashboard() {
     <AuthGuard requirePermission={{ action: 'read', subject: 'dashboard' }}>
       <div className="p-8 h-full">
         <div className="mb-8">
-          <h1 className="text-3xl font-black text-white tracking-wide uppercase drop-shadow-md">
+          <h1 className="text-3xl font-black text-gray-900 tracking-wide uppercase drop-shadow-md">
             Dashboard
           </h1>
-          <p className="text-[#8ba0b8] mt-2 font-medium">
+          <p className="text-gray-600 mt-2 font-medium">
             Welcome to the Techomax Admin Panel.
           </p>
         </div>
@@ -21,9 +21,9 @@ export default function AdminDashboard() {
             { label: 'Active Projects', value: '3' },
             { label: 'Pending Reviews', value: '7' }
           ].map((stat, i) => (
-            <div key={i} className="bg-[#131828]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-lg">
-              <h3 className="text-sm font-bold text-[#8ba0b8] uppercase tracking-wider mb-2">{stat.label}</h3>
-              <p className="text-4xl font-black text-[#00c8ff]">{stat.value}</p>
+            <div key={i} className="bg-white backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-lg">
+              <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">{stat.label}</h3>
+              <p className="text-4xl font-black text-[#ABD2FA]">{stat.value}</p>
             </div>
           ))}
         </div>

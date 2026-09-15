@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CadConversionService } from './cad-conversion.service';
 import { CadConfigService } from './cad-config.service';
 import { PlotDetectionService } from './plot-detection.service';
+import { DxfPlotDetectionService } from './dxf-plot-detection.service';
 import * as fs from 'fs';
 import * as path from 'path';
 // @ts-ignore
@@ -15,6 +16,7 @@ export class ConversionPipelineService {
     private readonly cadConversionService: CadConversionService,
     private readonly cadConfig: CadConfigService,
     private readonly plotDetection: PlotDetectionService,
+    private readonly dxfPlotDetection: DxfPlotDetectionService,
   ) {}
 
   async runPipeline(conversionId: number, filePath: string, originalName: string) {
@@ -108,6 +110,15 @@ export class ConversionPipelineService {
       const layerCount = parsedData.tables && parsedData.tables.layer && parsedData.tables.layer.layers ? Object.keys(parsedData.tables.layer.layers).length : 0;
       const blockCount = parsedData.blocks ? Object.keys(parsedData.blocks).length : 0;
 
+      // 6.5 Run DXF Plot Detection to create DB records
+      const conversion = await this.cadConversionService.findOne(conversionId);
+      const projectId = conversion.projectId;
+      let plotsDetected = 0;
+      if (projectId) {
+        const detectionResult = await this.dxfPlotDetection.detectAndCreatePlots(conversionId, workingFilePath, projectId);
+        plotsDetected = detectionResult.count;
+      }
+
       // 7. Complete
       const conversionTime = Date.now() - startTime;
       await this.cadConversionService.update(conversionId, {
@@ -117,6 +128,7 @@ export class ConversionPipelineService {
         layerCount,
         blockCount,
         conversionTime,
+        plotsDetected,
         cadVersion: parsedData.header && parsedData.header.$ACADVER ? parsedData.header.$ACADVER : 'Unknown'
       });
       

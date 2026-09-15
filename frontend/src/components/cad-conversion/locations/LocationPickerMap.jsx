@@ -127,7 +127,7 @@ export default function LocationPickerMap({ position, setPosition, onLocationFou
   };
 
   return (
-    <div className="w-full h-[400px] rounded-xl overflow-hidden border border-white/10 relative z-0">
+    <div className="w-full h-[400px] rounded-xl overflow-hidden border border-gray-200 relative z-0">
       
       {/* Floating Search Bar */}
       <div className="absolute top-4 left-4 right-4 sm:right-auto sm:w-80 z-[1000] flex gap-2">
@@ -144,7 +144,7 @@ export default function LocationPickerMap({ position, setPosition, onLocationFou
           placeholder="Search places..." 
           className="flex-1 bg-white/95 text-slate-800 placeholder-slate-500 border border-black/10 rounded-xl px-4 py-2.5 text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00c8ff]/50 backdrop-blur-md"
         />
-        <button type="button" onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="px-4 py-2.5 bg-[#00c8ff] hover:bg-[#00a0cc] text-white rounded-xl transition-colors disabled:opacity-50 shadow-lg flex items-center justify-center">
+        <button type="button" onClick={handleSearch} disabled={searching || !searchQuery.trim()} className="px-4 py-2.5 bg-[#ABD2FA] hover:bg-[#00a0cc] text-gray-900 rounded-xl transition-colors disabled:opacity-50 shadow-lg flex items-center justify-center">
           {searching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
         </button>
       </div>
@@ -155,7 +155,7 @@ export default function LocationPickerMap({ position, setPosition, onLocationFou
           <button 
             type="button" 
             onClick={recenterToMarker}
-            className="p-3 bg-[#00c8ff]/10 text-[#00c8ff] hover:bg-[#00c8ff] hover:text-white rounded-full shadow-lg transition-colors backdrop-blur-md border border-[#00c8ff]/30"
+            className="p-3 bg-[#ABD2FA] text-[#18181b] hover:bg-[#9bc2ea] hover:text-[#18181b] rounded-full shadow-lg transition-colors backdrop-blur-md border border-[#ABD2FA]"
             title="Re-center on project marker"
           >
             <Target size={20} />
@@ -168,7 +168,7 @@ export default function LocationPickerMap({ position, setPosition, onLocationFou
         <button 
           type="button" 
           onClick={locateMe}
-          className="p-3 bg-white/95 text-slate-800 hover:text-[#00c8ff] rounded-full shadow-lg transition-colors backdrop-blur-md border border-black/10"
+          className="p-3 bg-white/95 text-slate-800 hover:text-[#ABD2FA] rounded-full shadow-lg transition-colors backdrop-blur-md border border-black/10"
           title="Go to my location"
         >
           <Navigation size={20} />
@@ -180,14 +180,14 @@ export default function LocationPickerMap({ position, setPosition, onLocationFou
         <button 
           type="button"
           onClick={() => setMapType('roadmap')}
-          className={`px-3 py-2 transition-colors ${mapType === 'roadmap' ? 'bg-[#00c8ff] text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          className={`px-3 py-2 transition-colors ${mapType === 'roadmap' ? 'bg-[#ABD2FA] text-gray-900' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           Map
         </button>
         <button 
           type="button"
           onClick={() => setMapType('hybrid')}
-          className={`px-3 py-2 transition-colors ${mapType === 'hybrid' ? 'bg-[#00c8ff] text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          className={`px-3 py-2 transition-colors ${mapType === 'hybrid' ? 'bg-[#ABD2FA] text-gray-900' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           Satellite
         </button>
@@ -202,6 +202,7 @@ export default function LocationPickerMap({ position, setPosition, onLocationFou
         attributionControl={false}
       >
         <TileLayer
+          key={mapType}
           url={`https://mt1.google.com/vt/lyrs=${mapType === 'hybrid' ? 'y' : 'm'}&x={x}&y={y}&z={z}`}
         />
         <LocationMarker position={position} setPosition={setPosition} />

@@ -18,6 +18,17 @@ enum PlotType {
   CUSTOM
 }
 
+enum PlotSource {
+  MANUAL
+  CAD_DETECTED
+}
+
+enum ReviewStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
 model CadProject {
   id          Int             @id @default(autoincrement())
   name        String          @unique
@@ -85,6 +96,7 @@ model CadConversion {
   project          CadProject? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   originalFileName String
   originalFilePath String
+  dxfFilePath      String?
   svgFilePath      String?
   cadVersion       String?
   status           String      @default("PENDING") // PENDING, PROCESSING, SUCCESS, FAILED
@@ -104,6 +116,7 @@ model CadConversion {
   amenityPlacements AmenityPlacement[]
   plots            ProjectPlot[]
   layoutLineColor  String?
+  plotsDetected    Int?
   shapeAppearances CadShapeAppearance[]
 }
 
@@ -138,7 +151,7 @@ model ProjectPlot {
   id          Int         @id @default(autoincrement())
   projectId   Int
   project     CadProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  plotNumber  String
+  plotNumber  String?
   plotType    PlotType    @default(RECTANGLE)
   dimensions  Json?
   areaSqFt    Float?
@@ -149,17 +162,17 @@ model ProjectPlot {
   remarks     String?
   cadRegionId   String? // To link with specific regions in the CAD editor SVG
   conversionId  Int?
-  conversion    CadConversion? @relation(fields: [conversionId], references: [id], onDelete: SetNull)
+  conversion    CadConversion? @relation(fields: [conversionId], references: [id], onDelete: Cascade)
   cadObjectType String?
   x             Float?
   y             Float?
   rotation      Float?
   scale         Float?
   metadata      Json?
+  source        PlotSource?   @default(MANUAL)
+  reviewStatus  ReviewStatus? @default(DRAFT)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-
-  @@unique([projectId, plotNumber])
 }
 
 model AmenityPlacement {

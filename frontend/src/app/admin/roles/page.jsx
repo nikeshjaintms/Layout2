@@ -79,11 +79,11 @@ export default function RolesPage() {
         <div className="max-w-7xl mx-auto w-full space-y-6 flex-1 flex flex-col relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-              <Shield className="w-8 h-8 text-[#00c8ff]" />
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 flex items-center gap-2">
+              <Shield className="w-8 h-8 text-[#ABD2FA]" />
               Roles & Permissions
             </h1>
-            <p className="text-xs sm:text-sm text-[#8ba0b8] font-medium mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1">
               Manage system roles and access control.
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function RolesPage() {
             <Can I="create" a="role">
               <Link
                 href="/admin/roles/add"
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#00c8ff] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#ABD2FA] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 <Plus size={18} strokeWidth={2.5} />
                 <span>Create Role</span>
@@ -101,60 +101,60 @@ export default function RolesPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col md:flex-row gap-4 md:items-center bg-[#1d2440]/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center bg-white backdrop-blur-md p-4 rounded-2xl border border-gray-200 shadow-lg">
           <div className="relative flex-1 w-full md:max-w-md group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8ba0b8] group-focus-within:text-[#00c8ff] transition-colors" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#ABD2FA] transition-colors" size={18} />
             <input
               type="text"
               placeholder="Search roles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-white placeholder-[#8ba0b8] font-medium"
+              className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#ABD2FA] focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-gray-900 placeholder-[#8ba0b8] font-medium"
             />
           </div>
         </div>
 
         {/* Table Container */}
-        <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
+        <div className="bg-white backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-[#1d2440] border-b border-white/10 sticky top-0 z-10">
+              <thead className="bg-[#FDF6ED] border-b border-gray-200 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Role Name</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Description</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Users</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Permissions</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] text-right">Actions</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Role Name</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Description</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Users</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Permissions</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-[#8ba0b8]">
-                      <Loader2 className="animate-spin text-[#00c8ff] mx-auto mb-2" size={30} />
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-600">
+                      <Loader2 className="animate-spin text-[#ABD2FA] mx-auto mb-2" size={30} />
                       Loading roles...
                     </td>
                   </tr>
                 ) : filteredRoles.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-[#8ba0b8]">
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-600">
                       No roles found matching "{searchTerm}"
                     </td>
                   </tr>
                 ) : (
                   filteredRoles.map(role => (
-                    <tr key={role.id} className="hover:bg-white/5 transition-all duration-200 group">
-                      <td className="px-6 py-5 font-semibold text-white">
+                    <tr key={role.id} className="hover:bg-gray-50 transition-all duration-200 group">
+                      <td className="px-6 py-5 font-semibold text-gray-900">
                         <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-[#8ba0b8]" />
+                          <Shield className="w-4 h-4 text-gray-600" />
                           {role.name}
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-[#8ba0b8] font-medium">{role.description || '-'}</td>
-                      <td className="px-6 py-5 text-[#8ba0b8] font-medium">
+                      <td className="px-6 py-5 text-gray-600 font-medium">{role.description || '-'}</td>
+                      <td className="px-6 py-5 text-gray-600 font-medium">
                         {role._count?.users || 0} user{role._count?.users !== 1 ? 's' : ''}
                       </td>
-                      <td className="px-6 py-5 text-[#8ba0b8] font-medium">
+                      <td className="px-6 py-5 text-gray-600 font-medium">
                         {role.name === 'ADMIN' ? 'All permissions assigned' : `${role.permissions.length} permissions assigned`}
                       </td>
                       <td className="px-6 py-5 text-right">
@@ -162,7 +162,7 @@ export default function RolesPage() {
                           <Can I="edit" a="role">
                             <Link
                               href={`/admin/roles/edit/${role.id}`}
-                              className="p-2 text-[#8ba0b8] hover:text-[#00c8ff] bg-white/5 border border-white/10 hover:border-[#00c8ff]/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]"
+                              className="p-2 text-gray-600 hover:text-[#ABD2FA] bg-white/5 border border-gray-200 hover:border-[#ABD2FA] rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]"
                               title="Edit Role"
                             >
                               <Edit2 size={15} />
@@ -172,7 +172,7 @@ export default function RolesPage() {
                             <Can I="delete" a="role">
                               <button
                                 onClick={() => handleDelete(role.id)}
-                                className="p-2 text-[#8ba0b8] hover:text-red-400 bg-white/5 border border-white/10 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+                                className="p-2 text-gray-600 hover:text-red-400 bg-white/5 border border-gray-200 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]"
                                 title="Delete Role"
                               >
                                 <Trash2 size={15} />

@@ -145,7 +145,7 @@ export default function ProjectMapWorkspace({ projectId }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
+      <div className="flex h-screen items-center justify-center bg-black text-gray-900">
         <Loader2 className="animate-spin mr-2" /> Loading workspace...
       </div>
     );
@@ -171,7 +171,7 @@ export default function ProjectMapWorkspace({ projectId }) {
         <div className="flex items-center gap-6">
           <Link 
             href={`/cad-conversion/${projectId}`} 
-            className="text-zinc-400 hover:text-white transition-colors flex items-center gap-2 text-sm font-medium"
+            className="text-zinc-400 hover:text-gray-900 transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <ArrowLeft size={16} />
             Back to Dashboard
@@ -187,7 +187,7 @@ export default function ProjectMapWorkspace({ projectId }) {
           <button
             onClick={handleSave}
             disabled={!draftLocation?.lat}
-            className="text-sm px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-gray-900 rounded-md transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={16} />
             Save Location
@@ -214,7 +214,7 @@ export default function ProjectMapWorkspace({ projectId }) {
               <Search size={16} className="absolute left-3 top-3 text-zinc-500" />
               <button 
                 type="submit" 
-                className="absolute right-2 top-1.5 p-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded flex items-center justify-center transition-colors"
+                className="absolute right-2 top-1.5 p-1 bg-indigo-600 hover:bg-indigo-500 text-gray-900 rounded flex items-center justify-center transition-colors"
               >
                 {isSearching ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
               </button>
@@ -255,7 +255,7 @@ export default function ProjectMapWorkspace({ projectId }) {
                   onClick={() => setMapType(type)}
                   className={`text-xs font-medium px-3 py-1.5 rounded transition-colors capitalize ${
                     mapType === type 
-                      ? 'bg-zinc-800 text-white' 
+                      ? 'bg-zinc-800 text-gray-900' 
                       : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
                   }`}
                 >

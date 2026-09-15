@@ -44,7 +44,8 @@ function pbComputeCentroid(element) {
   }
 }
 
-export default function PlotLabelsOverlay({ svgRef, plots, onLabelDragEnd, readOnly, selectedShapeIds, projectConfig, appearanceSettings }) {
+const PlotLabelsOverlay = React.memo(function PlotLabelsOverlay({ svgRef, scale, plots, onLabelDragEnd, readOnly, selectedShapeIds, projectConfig, appearanceSettings }) {
+  console.log('[PLOT LABELS OVERLAY RENDER]', { plots });
   const [labels, setLabels] = useState([]);
   const [dragState, setDragState] = useState(null);
 
@@ -56,6 +57,13 @@ export default function PlotLabelsOverlay({ svgRef, plots, onLabelDragEnd, readO
     // A short delay helps ensure the SVG has been fully rendered in the DOM
     const timer = setTimeout(() => {
       const svgEl = svgRef.current.tagName.toLowerCase() === 'svg' ? svgRef.current : svgRef.current.querySelector('svg');
+      
+      console.log('[PLOT LABELS RENDER]', { 
+        plotsLength: plots.length, 
+        svgElFound: !!svgEl,
+        plotElementsInDom: svgEl ? svgEl.querySelectorAll('[data-plot-id]').length : 0
+      });
+
       if (!svgEl) return;
 
       const plotElements = svgRef.current.querySelectorAll('[data-plot-id]');
@@ -348,4 +356,6 @@ export default function PlotLabelsOverlay({ svgRef, plots, onLabelDragEnd, readO
       })}
     </g>
   );
-}
+});
+
+export default PlotLabelsOverlay;

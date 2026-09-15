@@ -71,18 +71,18 @@ export default function AdminSubscriptions() {
       title: 'Extend/Reduce Subscription',
       html: `
         <div class="flex flex-col gap-4 text-left">
-          <p class="text-sm text-gray-400">Current End Date: ${new Date(sub.endDate).toLocaleDateString()}</p>
+          <p class="text-sm text-gray-600">Current End Date: ${new Date(sub.endDate).toLocaleDateString()}</p>
           <div>
-            <label class="block text-sm font-bold text-white mb-1">Duration Type</label>
-            <select id="durationType" class="w-full bg-[#131828] border border-white/10 rounded-xl text-white px-3 py-2">
+            <label class="block text-sm font-bold text-gray-900 mb-1">Duration Type</label>
+            <select id="durationType" class="w-full bg-white border border-gray-200 rounded-xl text-gray-900 px-3 py-2">
               <option value="DAYS">Days</option>
               <option value="MONTHS">Months</option>
               <option value="YEARS">Years</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-bold text-white mb-1">Value (Use negative to reduce)</label>
-            <input type="number" id="durationValue" class="w-full bg-[#131828] border border-white/10 rounded-xl text-white px-3 py-2" value="30">
+            <label class="block text-sm font-bold text-gray-900 mb-1">Value (Use negative to reduce)</label>
+            <input type="number" id="durationValue" class="w-full bg-white border border-gray-200 rounded-xl text-gray-900 px-3 py-2" value="30">
           </div>
         </div>
       `,
@@ -118,21 +118,21 @@ export default function AdminSubscriptions() {
       <div className="p-8 h-full flex flex-col">
         <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-wide uppercase drop-shadow-md">
+            <h1 className="text-3xl font-black text-gray-900 tracking-wide uppercase drop-shadow-md">
               Subscriptions
             </h1>
-            <p className="text-[#8ba0b8] mt-2 font-medium">
+            <p className="text-gray-600 mt-2 font-medium">
               Manage client subscriptions and validity periods.
             </p>
           </div>
           
           <div className="relative w-full sm:max-w-xs">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-[#8ba0b8]" />
+              <Search className="h-4 w-4 text-gray-600" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-4 py-2.5 bg-[#131828]/90 border border-white/10 rounded-xl text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 transition-all text-sm"
+              className="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-[#8ba0b8] focus:outline-none focus:border-[#ABD2FA] transition-all text-sm"
               placeholder="Search clients..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -142,42 +142,42 @@ export default function AdminSubscriptions() {
 
         {loading ? (
           <div className="flex-1 flex justify-center items-center">
-            <Loader2 className="w-8 h-8 text-[#00c8ff] animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#ABD2FA] animate-spin" />
           </div>
         ) : (
-          <div className="bg-[#131828]/90 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-white backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden shadow-2xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#0b0f19] border-b border-white/5">
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">Client</th>
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">Email</th>
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">Status</th>
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">Start Date</th>
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">End Date</th>
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">Days Left</th>
-                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-[#8ba0b8]">Actions</th>
+                  <tr className="bg-[#FDF6ED] border-b border-gray-200">
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">Client</th>
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">Email</th>
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">Status</th>
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">Start Date</th>
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">End Date</th>
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">Days Left</th>
+                    <th className="py-4 px-6 font-bold text-xs uppercase tracking-wider text-gray-600">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-gray-200">
                   {filteredSubs.map((sub) => {
                     const daysLeft = getDaysLeft(sub.endDate);
                     const isExpired = daysLeft < 0;
                     
                     return (
-                      <tr key={sub.id} className="hover:bg-white/5 transition-colors">
-                        <td className="py-4 px-6 font-medium text-white flex items-center gap-2">
-                          <User size={16} className="text-[#00c8ff]"/> {sub.user?.name || 'Unknown'}
+                      <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-6 font-medium text-gray-900 flex items-center gap-2">
+                          <User size={16} className="text-[#ABD2FA]"/> {sub.user?.name || 'Unknown'}
                         </td>
-                        <td className="py-4 px-6 text-[#8ba0b8] text-sm">{sub.user?.email}</td>
+                        <td className="py-4 px-6 text-gray-600 text-sm">{sub.user?.email}</td>
                         <td className="py-4 px-6">
                           <span className={`text-[10px] font-black px-2 py-1 rounded border flex items-center gap-1 w-max ${sub.status === 'ACTIVE' && !isExpired ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                             {sub.status === 'ACTIVE' && !isExpired ? <CheckCircle size={12}/> : <XCircle size={12}/>}
                             {isExpired ? 'EXPIRED' : sub.status}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-[#8ba0b8] text-sm">{new Date(sub.startDate).toLocaleDateString()}</td>
-                        <td className="py-4 px-6 text-[#8ba0b8] text-sm">{new Date(sub.endDate).toLocaleDateString()}</td>
+                        <td className="py-4 px-6 text-gray-600 text-sm">{new Date(sub.startDate).toLocaleDateString()}</td>
+                        <td className="py-4 px-6 text-gray-600 text-sm">{new Date(sub.endDate).toLocaleDateString()}</td>
                         <td className="py-4 px-6 text-sm font-bold">
                           {isExpired ? (
                             <span className="text-red-400">Expired</span>
@@ -195,7 +195,7 @@ export default function AdminSubscriptions() {
                             </button>
                             <button 
                               onClick={() => handleExtend(sub)}
-                              className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                              className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-blue-500/10 border-blue-500/20 text-[#ABD2FA] hover:bg-[#8bbefa]/20 transition-colors"
                             >
                               Extend
                             </button>
@@ -206,7 +206,7 @@ export default function AdminSubscriptions() {
                   })}
                   {filteredSubs.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="py-8 text-center text-[#8ba0b8]">
+                      <td colSpan="7" className="py-8 text-center text-gray-600">
                         No subscriptions found. Note: Clients without a first login do not have a subscription yet.
                       </td>
                     </tr>

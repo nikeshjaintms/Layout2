@@ -44,7 +44,7 @@ export const createPlot = createAsyncThunk(
       const response = await api.createProjectPlot(projectId, data);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to create plot');
+      return rejectWithValue(error.response || error.message || 'Failed to create plot');
     }
   }
 );
@@ -56,7 +56,7 @@ export const createPlotsBulk = createAsyncThunk(
       const response = await api.createProjectPlotsBulk(projectId, data);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to create plots in bulk');
+      return rejectWithValue(error.response || error.message || 'Failed to create plots in bulk');
     }
   }
 );
@@ -68,7 +68,7 @@ export const updatePlot = createAsyncThunk(
       const response = await api.updateProjectPlot(projectId, plotId, data);
       return response;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to update plot');
+      return rejectWithValue(error.response || error.message || 'Failed to update plot');
     }
   }
 );

@@ -164,6 +164,7 @@ export default function UserLayoutViewer({ project, conversion }) {
       {/* ── Toolbar ──────────────────────────────────────────────────────── */}
       <UserViewerToolbar
         project={project}
+        conversionId={conversion?.id}
         layoutName={conversion?.originalFileName}
         zoomIn={zoomIn}
         zoomOut={zoomOut}

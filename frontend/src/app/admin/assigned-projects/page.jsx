@@ -58,10 +58,10 @@ export default function AdminAssignedProjects() {
     <div className="p-8 h-full flex flex-col">
       <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-wide uppercase drop-shadow-md">
+          <h1 className="text-3xl font-black text-gray-900 tracking-wide uppercase drop-shadow-md">
             Assigned Projects
           </h1>
-          <p className="text-[#8ba0b8] mt-2 font-medium">
+          <p className="text-gray-600 mt-2 font-medium">
             View all projects assigned to your administration.
           </p>
         </div>
@@ -69,11 +69,11 @@ export default function AdminAssignedProjects() {
         {/* Search Bar */}
         <div className="relative w-full sm:max-w-xs">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-[#8ba0b8]" />
+            <Search className="h-4 w-4 text-gray-600" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-10 py-2.5 bg-[#131828]/90 border border-white/10 rounded-xl text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:ring-1 focus:ring-[#00c8ff]/50 transition-all text-sm"
+            className="block w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-[#8ba0b8] focus:outline-none focus:border-[#ABD2FA] focus:ring-1 focus:ring-[#00c8ff]/50 transition-all text-sm"
             placeholder="Search projects..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -81,7 +81,7 @@ export default function AdminAssignedProjects() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8ba0b8] hover:text-white"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-gray-900"
             >
               <X className="h-4 w-4" />
             </button>
@@ -91,27 +91,27 @@ export default function AdminAssignedProjects() {
 
       {loading ? (
         <div className="flex-1 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 text-[#00c8ff] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#ABD2FA] animate-spin" />
         </div>
       ) : projects.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-[#8ba0b8]">
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-600">
           <Folder size={48} className="mb-4 opacity-50" />
           <p>No projects found.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <Link href={`/cad-conversion/${project.id}`} key={project.id} className="bg-[#131828]/90 backdrop-blur-md border border-white/10 rounded-[2rem] p-6 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] hover:-translate-y-1 transition-all duration-300 group cursor-pointer block">
+            <Link href={`/cad-conversion/${project.id}`} key={project.id} className="bg-white backdrop-blur-md border border-gray-200 rounded-[2rem] p-6 hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300 group cursor-pointer block">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#00c8ff] group-hover:bg-[#00c8ff]/10 group-hover:border-[#00c8ff]/30 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-white/5 border border-gray-200 flex items-center justify-center text-[#ABD2FA] group-hover:bg-[#ABD2FA] group-hover:border-[#ABD2FA] transition-colors">
                   <Folder size={24} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-white text-lg line-clamp-1" title={project.name}>{project.name}</h3>
+                  <h3 className="font-bold text-gray-900 text-lg line-clamp-1" title={project.name}>{project.name}</h3>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <button 
                       onClick={(e) => handleAdminStatusToggle(e, project)}
-                      className={`text-[10px] font-black px-2 py-1 rounded border flex items-center gap-1 ${project.adminActive && project.clientActive ? 'bg-[#00c8ff]/10 text-[#00c8ff] border-[#00c8ff]/20 hover:bg-[#00c8ff]/20' : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'}`}
+                      className={`text-[10px] font-black px-2 py-1 rounded border flex items-center gap-1 ${project.adminActive && project.clientActive ? 'bg-[#ABD2FA] text-[#ABD2FA] border-[#ABD2FA] hover:bg-[#ABD2FA]' : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'}`}
                       title="Toggle Effective Status"
                     >
                       STATUS: {project.adminActive && project.clientActive ? 'ACTIVE' : 'INACTIVE'}
@@ -131,23 +131,23 @@ export default function AdminAssignedProjects() {
                 </div>
               </div>
               
-              <div className="flex justify-between items-start pt-6 border-t border-white/5">
+              <div className="flex justify-between items-start pt-6 border-t border-gray-200">
                 <div className="flex flex-col flex-1 min-w-0 pr-2">
-                  <span className="text-[10px] font-black text-[#8ba0b8] uppercase tracking-widest">Client</span>
-                  <span className="text-sm font-bold text-white mt-1 flex items-center gap-1.5 truncate">
-                    <User size={14} className="text-[#00c8ff] shrink-0"/> 
+                  <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Client</span>
+                  <span className="text-sm font-bold text-gray-900 mt-1 flex items-center gap-1.5 truncate">
+                    <User size={14} className="text-[#ABD2FA] shrink-0"/> 
                     <span className="truncate">{project.owner?.name || 'Unassigned'}</span>
                   </span>
                   {project.owner?.email && (
-                    <span className="text-xs text-[#8ba0b8] mt-1 flex items-center gap-1.5 truncate" title={project.owner.email}>
+                    <span className="text-xs text-gray-600 mt-1 flex items-center gap-1.5 truncate" title={project.owner.email}>
                       <Mail size={12} className="shrink-0"/> 
                       <span className="truncate">{project.owner.email}</span>
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col items-end shrink-0 pl-2 border-l border-white/5">
-                  <span className="text-[10px] font-black text-[#8ba0b8] uppercase tracking-widest">Plots</span>
-                  <span className="text-lg font-black text-[#00c8ff] mt-1">{project._count?.plots || 0}</span>
+                <div className="flex flex-col items-end shrink-0 pl-2 border-l border-gray-200">
+                  <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Plots</span>
+                  <span className="text-lg font-black text-[#ABD2FA] mt-1">{project._count?.plots || 0}</span>
                 </div>
               </div>
             </Link>

@@ -65,8 +65,6 @@ const ShapeRenderer = React.memo(function ShapeRenderer({
     }
   }
 
-
-
   const resolvedFill = resolvePlotFill(shape, plots, statuses, showPlotStatus, false, appearanceSettings, currentIsSelected, readOnly);
 
   if (resolvedFill !== null) {

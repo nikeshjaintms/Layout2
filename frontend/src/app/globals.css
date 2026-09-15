@@ -72,3 +72,8 @@ body {
 /* ── Hide scrollbar while keeping scroll (used in plot pan chip row) ─────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Prevent browser from intercepting ColorPicker hue/saturation drag as page scroll ── */
+.ant-color-picker-panel {
+  touch-action: none;
+}

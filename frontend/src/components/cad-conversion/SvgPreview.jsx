@@ -64,7 +64,7 @@ export default function SvgPreview({ conversion, conversions = [], projectId }) 
               disabled={!targetConversionId}
               className={`flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shrink-0
                 ${targetConversionId 
-                  ? 'bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)]' 
+                  ? 'bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)]' 
                   : 'bg-zinc-800/50 text-zinc-500 cursor-not-allowed border border-zinc-700/50'}`}
               title={!targetConversionId ? "This conversion failed or is still processing" : ""}
             >

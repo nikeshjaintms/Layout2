@@ -59,10 +59,10 @@ export default function UploadPanel({ projectId, onUploadStart, onUploadError })
       <button 
         onClick={() => fileInputRef.current?.click()}
         disabled={isUploading}
-        className="w-full h-24 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#00c8ff]/50 hover:bg-[#00c8ff]/10 hover:shadow-[0_0_15px_rgba(0,200,255,0.1)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-[#8ba0b8] hover:text-[#00c8ff] group"
+        className="w-full h-24 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-[#ABD2FA] hover:bg-[#ABD2FA] hover:shadow-[0_0_15px_rgba(0,200,255,0.1)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 hover:text-[#ABD2FA] group"
       >
         {isUploading ? (
-          <Loader2 size={24} className="animate-spin text-[#00c8ff]" />
+          <Loader2 size={24} className="animate-spin text-[#ABD2FA]" />
         ) : (
           <UploadCloud size={24} className="group-hover:-translate-y-1 transition-transform duration-300" />
         )}

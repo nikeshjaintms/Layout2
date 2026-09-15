@@ -62,7 +62,7 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
   };
 
   return (
-    <div className="min-h-screen bg-[#131826] flex text-slate-300 overflow-hidden font-sans">
+    <div className="min-h-screen bg-white flex text-slate-300 overflow-hidden font-sans">
       <Sidebar projectId={projectId} />
       <div className="flex-1 p-8 flex flex-col h-screen overflow-y-auto relative">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
@@ -71,21 +71,21 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
           <div className="flex items-center gap-5 mb-8">
             <Link 
               href={`/cad-conversion/${projectId}/plot-statuses`} 
-              className="p-2.5 bg-[#1d2440] border border-white/10 hover:border-[#00c8ff]/50 rounded-xl transition-all duration-300 text-slate-400 hover:text-[#00c8ff] shadow-lg group"
+              className="p-2.5 bg-[#FDF6ED] border border-gray-200 hover:border-[#ABD2FA] rounded-xl transition-all duration-300 text-gray-600 hover:text-[#ABD2FA] shadow-lg group"
             >
               <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             </Link>
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-white">{isEditing ? 'Edit Plot Status' : 'Add Plot Status'}</h1>
-              <p className="text-[#8ba0b8] font-medium mt-1">{isEditing ? `Editing status for project #${projectId}` : `Create a new status for project #${projectId}`}</p>
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">{isEditing ? 'Edit Plot Status' : 'Add Plot Status'}</h1>
+              <p className="text-gray-600 font-medium mt-1">{isEditing ? `Editing status for project #${projectId}` : `Create a new status for project #${projectId}`}</p>
             </div>
           </div>
 
-          <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl transition-all">
+          <div className="bg-[#FDF6ED] backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden shadow-xl transition-all">
             <form onSubmit={handleSubmit} noValidate className="flex flex-col">
               <div className="p-8 space-y-8">
                 <div>
-                  <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Status Name *</label>
+                  <label className="block text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">Status Name *</label>
                   <input
                     type="text"
                     value={formData.name}
@@ -93,7 +93,7 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
                     onKeyDown={(e) => {
                       if (e.key === ' ') e.preventDefault();
                     }}
-                    className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white placeholder-[#8ba0b8] focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-[#8ba0b8] focus:outline-none focus:border-[#ABD2FA] focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
                     placeholder="e.g. Premium"
                   />
                   {errors.name && (
@@ -102,27 +102,27 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Fill Color</label>
-                  <div className="flex items-center gap-3 w-full bg-[#0f111a]/50 border border-white/10 rounded-xl p-2 focus-within:border-[#00c8ff]/50 focus-within:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all">
-                    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm }}>
+                  <label className="block text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">Fill Color</label>
+                  <div className="flex items-center gap-3 w-full bg-white border border-gray-200 rounded-xl p-2 focus-within:border-[#ABD2FA] focus-within:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all">
+                    <ConfigProvider theme={{ algorithm: theme.defaultAlgorithm }}>
                       <ColorPicker
                         format="hex"
                         value={formData.fillColor}
                         onChange={(color) => setFormData(prev => ({ ...prev, fillColor: typeof color === 'string' ? color : color.toHexString() }))}
                         showText
                         size="large"
-                        className="bg-transparent border-none text-white w-full flex justify-start shadow-none"
+                        className="bg-transparent border-none text-gray-900 w-full flex justify-start shadow-none"
                       />
                     </ConfigProvider>
                   </div>
                 </div>
 
                 <div className="pt-2">
-                  <label className="block text-sm font-bold text-white uppercase tracking-wider mb-2">Status</label>
+                  <label className="block text-sm font-bold text-gray-900 uppercase tracking-wider mb-2">Status</label>
                   <select
                     value={formData.isActive !== false ? 'true' : 'false'}
                     onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'true' }))}
-                    className="w-full px-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
+                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:border-[#ABD2FA] focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all"
                   >
                     <option value="true">Active</option>
                     <option value="false">Inactive</option>
@@ -130,17 +130,17 @@ export default function PlotStatusForm({ projectId, statusId, initialData, curre
                 </div>
               </div>
               
-              <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end gap-4 mt-auto">
+              <div className="p-6 border-t border-gray-200 bg-white/5 flex justify-end gap-4 mt-auto">
                 <Link
                   href={`/cad-conversion/${projectId}/plot-statuses`}
-                  className="px-6 py-2.5 text-sm font-bold text-[#8ba0b8] hover:text-white transition-colors bg-[#1d2440] border border-white/10 hover:border-white/30 rounded-xl shadow-lg"
+                  className="px-6 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-900 transition-colors bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-sm"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2.5 bg-[#00c8ff] hover:bg-[#00b0e6] disabled:opacity-50 text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] transition-all hover:scale-105 active:scale-95 disabled:hover:scale-100"
+                  className="px-6 py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] disabled:opacity-50 text-[#18181b] text-sm font-bold rounded-xl shadow-sm transition-all hover:scale-105 active:scale-95 disabled:hover:scale-100"
                 >
                   {loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Status')}
                 </button>

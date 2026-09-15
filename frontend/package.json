@@ -15,6 +15,8 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@react-google-maps/api": "^2.20.8",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
     "@reduxjs/toolkit": "^2.12.0",
     "@techstark/opencv-js": "^5.0.0-release.1",
     "@turf/area": "^7.3.5",
@@ -42,6 +44,7 @@
     "react-virtuoso": "^4.18.10",
     "react-zoom-pan-pinch": "^4.0.3",
     "sweetalert2": "^11.26.25",
+    "three": "^0.186.0",
     "use-image": "^1.1.4",
     "uuid": "^14.0.1",
     "zustand": "^5.0.14"

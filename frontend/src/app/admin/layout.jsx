@@ -6,7 +6,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 export default function AdminLayout({ children }) {
   return (
     <AuthGuard>
-      <div className="flex flex-col md:flex-row h-screen bg-[#0a0d16] text-white overflow-hidden font-sans">
+      <div className="flex flex-col md:flex-row h-screen bg-[#FDF6ED] text-gray-900 overflow-hidden font-sans">
         <AdminSidebaar />
         
         {/* Main Content Area */}

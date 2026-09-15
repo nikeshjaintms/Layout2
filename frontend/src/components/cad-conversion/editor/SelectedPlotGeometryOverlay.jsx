@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // Extract vertices and centroid from SVG element in global SVG coordinates
 function getSvgGeometry(svgEl, shapeId) {
   if (!svgEl) return null;
-  const el = svgEl.querySelector(`[id="${CSS.escape(shapeId)}"]`);
+  const el = svgEl.querySelector(`#${CSS.escape(shapeId)}`);
   if (!el) return null;
   
   const tag = el.tagName.toLowerCase();
@@ -225,11 +225,19 @@ function getSvgGeometry(svgEl, shapeId) {
     pt.y = bb.y + bb.height/2;
     let centroid = transformMatrix ? pt.matrixTransform(transformMatrix) : pt;
     
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    edges.forEach(e => {
+      minX = Math.min(minX, e.p1.x, e.p2.x);
+      maxX = Math.max(maxX, e.p1.x, e.p2.x);
+      minY = Math.min(minY, e.p1.y, e.p2.y);
+      maxY = Math.max(maxY, e.p1.y, e.p2.y);
+    });
+    
     return { 
       edges, 
       centroid: { x: centroid.x, y: centroid.y },
-      width: bb.width,
-      height: bb.height
+      width: maxX === -Infinity ? bb.width : maxX - minX,
+      height: maxY === -Infinity ? bb.height : maxY - minY
     };
   } catch (e) {
     return null;
@@ -262,7 +270,7 @@ export default function SelectedPlotGeometryOverlay({ selectedShapeId, svgRef, p
 
   const svgEl = svgRef.current?.tagName.toLowerCase() === 'svg' ? svgRef.current : svgRef.current?.querySelector('svg');
   if (!svgEl) return null;
-  const el = svgEl.querySelector(`[id="${CSS.escape(selectedShapeId)}"]`);
+  const el = svgEl.querySelector(`#${CSS.escape(selectedShapeId)}`);
   if (!el) return null;
 
   const plotIdStr = el.getAttribute('data-plot-id');
@@ -352,23 +360,45 @@ export default function SelectedPlotGeometryOverlay({ selectedShapeId, svgRef, p
     if (!dim.targetEdge) return;
     const e = dim.targetEdge;
     
-    if (e.isCurve) return;
-      const dx = e.p2.x - e.p1.x;
-      const dy = e.p2.y - e.p1.y;
-      const len = Math.hypot(dx, dy);
-      if (len < 0.1) return;
+    const dx = e.p2.x - e.p1.x;
+    const dy = e.p2.y - e.p1.y;
+    const chordLen = Math.hypot(dx, dy);
+    
+    // For curves, chord might be small but curve length is long, 
+    // so we skip only if both chord and normal-derived lengths are tiny.
+    if (!e.isCurve && chordLen < 0.1) return;
 
-      const offset = Math.max(plotAvgDim * 0.05, 1);
+    const offset = Math.max(plotAvgDim * 0.05, 1);
+    
+    let nx = e.isCurve && e.normal ? e.normal.x : -dy / chordLen;
+    let ny = e.isCurve && e.normal ? e.normal.y : dx / chordLen;
+    
+    const rx = e.midPt.x - centroid.x;
+    const ry = e.midPt.y - centroid.y;
+    if (nx * rx + ny * ry < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+
+    if (e.isCurve) {
+      // For curves, we place the text at the midpoint offset by normal
+      const x = e.midPt.x + nx * offset;
+      const y = e.midPt.y + ny * offset;
       
-      let nx = -dy / len;
-      let ny = dx / len;
-      const rx = e.midPt.x - centroid.x;
-      const ry = e.midPt.y - centroid.y;
-      if (nx * rx + ny * ry < 0) {
-        nx = -nx;
-        ny = -ny;
-      }
-
+      // Calculate tangent angle at midpoint
+      let angle = getAngle({ x: 0, y: 0 }, { x: -ny, y: nx }); 
+      if (angle > 90 || angle < -90) angle += 180;
+      
+      dimensionLabels.push({
+        text: `${dim.value} ${dim.unit || fallbackUnit}`.trim(),
+        x, y, angle,
+        p1: null, p2: null, // Don't draw straight lines/ticks for curves
+        nx, ny,
+        tickSize: 0,
+        isCurve: true
+      });
+    } else {
+      // Straight lines
       const p1_off = { x: e.p1.x + nx * offset, y: e.p1.y + ny * offset };
       const p2_off = { x: e.p2.x + nx * offset, y: e.p2.y + ny * offset };
       
@@ -385,6 +415,7 @@ export default function SelectedPlotGeometryOverlay({ selectedShapeId, svgRef, p
         tickSize: offset * 0.5,
         isCurve: false
       });
+    }
   });
 
   const dimColor = (appearanceSettings?.dimensionColor && appearanceSettings.dimensionColor !== 'null') 

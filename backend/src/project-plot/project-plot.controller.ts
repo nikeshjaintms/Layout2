@@ -24,8 +24,9 @@ export class ProjectPlotController {
     @Query('assignment') assignment?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
+    @Query('conversionId') conversionId?: string,
   ) {
-    return this.projectPlotService.findAllByProject(+projectId, page, limit, search, pagination, statusId, assignment, sortBy, sortOrder);
+    return this.projectPlotService.findAllByProject(+projectId, page, limit, search, pagination, statusId, assignment, sortBy, sortOrder, undefined, conversionId);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard, ProjectOwnershipGuard)
@@ -66,8 +67,9 @@ export class ProjectPlotController {
     @Query('assignment') assignment?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
+    @Query('conversionId') conversionId?: string,
   ) {
-    return this.projectPlotService.findAllByProject(+projectId, page, limit, search, pagination, statusId, assignment, sortBy, sortOrder, req.user);
+    return this.projectPlotService.findAllByProject(+projectId, page, limit, search, pagination, statusId, assignment, sortBy, sortOrder, req.user, conversionId);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard, ProjectOwnershipGuard)

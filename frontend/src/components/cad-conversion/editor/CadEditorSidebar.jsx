@@ -13,7 +13,7 @@ const STROKE_SUPPORTED_TYPES = new Set([
 const MIN_STROKE = 0.01;
 const MAX_STROKE = 20;
 
-export default function CadEditorSidebar({ isMobileOpen, onCloseMobile, projectId, conversion, coords, activeTool, selectedShapes, fillColor, fillOpacity, eraserSize, plots, statuses, masterAmenities = [], projectConfig, onProjectLabelStyleChange, onPlotLabelStyleChange, onLayoutLineColorChange, onFillColorChange, onFillOpacityChange, onStrokeWidthChange, onEraserSizeChange, onAssignPlot, appearanceSettings }) {
+export default function CadEditorSidebar({ isMobileOpen, onCloseMobile, projectId, conversion, coords, activeTool, selectedShapes, fillColor, fillOpacity, eraserSize, plots, onRefreshPlots, statuses, masterAmenities = [], projectConfig, onProjectLabelStyleChange, onPlotLabelStyleChange, onLayoutLineColorChange, onFillColorChange, onFillOpacityChange, onStrokeWidthChange, onEraserSizeChange, onAssignPlot, appearanceSettings }) {
   // Theme styling
   const sidebarBg = appearanceSettings?.navColor || '#0f111a';
   const sidebarText = appearanceSettings?.navFontColor || '#ffffff';
@@ -215,8 +215,8 @@ export default function CadEditorSidebar({ isMobileOpen, onCloseMobile, projectI
         {/* ── Actions ───────────────────────────────────────────────────────── */}
         <div className="p-4 border-b flex flex-col gap-2" style={{ borderColor: borderColor }}>
           <h3 className="text-xs font-bold uppercase tracking-wider mb-2 hidden md:block" style={{ color: sidebarSubText }}>Actions</h3>
-          <Link
-            href={`/cad-conversion/${projectId}/manage-plot${conversion ? `?editorId=${conversion.id}` : ''}`}
+          <a
+            href={`/cad-conversion/${projectId}/manage-plot${conversion ? `?editorId=${conversion.id}&t=${Date.now()}` : `?t=${Date.now()}`}`}
             className="w-full flex items-center justify-center py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all"
             style={{ 
               backgroundColor: `${btnBg}1A`, // 10% opacity
@@ -227,9 +227,14 @@ export default function CadEditorSidebar({ isMobileOpen, onCloseMobile, projectI
             }}
             onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = btnBg; e.currentTarget.style.color = btnText; }}
             onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = `${btnBg}1A`; e.currentTarget.style.color = btnBg; }}
+            onClick={(e) => {
+              // Force fresh navigation to avoid stale Redux state in Next.js router cache
+              e.preventDefault();
+              window.location.href = `/cad-conversion/${projectId}/manage-plot?editorId=${conversion?.id || ''}&t=${Date.now()}`;
+            }}
           >
             Manage Plots
-          </Link>
+          </a>
           <Link
             href={`/cad-conversion/${projectId}/map`}
             className="w-full flex items-center justify-center py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all mt-1"
@@ -370,7 +375,9 @@ export default function CadEditorSidebar({ isMobileOpen, onCloseMobile, projectI
 
                   return (
                     <button
-                      onClick={() => setIsPlotDropdownOpen(!isPlotDropdownOpen)}
+                      onClick={() => {
+                        setIsPlotDropdownOpen(!isPlotDropdownOpen);
+                      }}
                       className="w-full px-2 py-1.5 rounded text-xs font-medium transition-colors flex justify-between items-center shadow-sm"
                       style={{ backgroundColor: btnBg, color: btnText }}
                       onMouseEnter={(e) => { e.currentTarget.style.opacity = 0.8; }}

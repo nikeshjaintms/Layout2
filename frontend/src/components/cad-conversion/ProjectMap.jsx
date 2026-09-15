@@ -56,10 +56,10 @@ export default function ProjectMap({ project }) {
   if (!project) return null;
 
   return (
-    <div className="flex flex-col bg-[#1d2440]/60 backdrop-blur-md text-slate-300 rounded-2xl border border-white/10 overflow-hidden shadow-xl">
-      <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-          <MapPin size={16} className="text-[#00c8ff]" />
+    <div className="flex flex-col bg-[#1d2440]/60 backdrop-blur-md text-slate-300 rounded-2xl border border-gray-200 overflow-hidden shadow-xl">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white/5">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900 flex items-center gap-2">
+          <MapPin size={16} className="text-[#ABD2FA]" />
           Project Location
         </h2>
       </div>
@@ -94,7 +94,7 @@ export default function ProjectMap({ project }) {
             <div className="p-5 flex flex-col space-y-4 bg-white/5">
                <Link 
                  href={`/cad-conversion/${project.id}/map`}
-                 className="mt-2 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] w-full"
+                 className="mt-2 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] w-full"
                >
                  Continue to Map
                  <ArrowRight size={16} />
@@ -107,15 +107,15 @@ export default function ProjectMap({ project }) {
               <MapPin size={32} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">No Location Set</h3>
-              <p className="text-sm text-[#8ba0b8] mt-1 font-medium">
+              <h3 className="text-lg font-bold text-gray-900">No Location Set</h3>
+              <p className="text-sm text-gray-600 mt-1 font-medium">
                 Pin this project on the map to enable GIS features.
               </p>
             </div>
 
             <Link 
               href={`/cad-conversion/${project.id}/map`}
-              className="mt-4 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] w-full"
+              className="mt-4 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] w-full"
             >
               Continue to Map
               <ArrowRight size={16} />

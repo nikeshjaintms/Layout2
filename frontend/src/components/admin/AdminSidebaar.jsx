@@ -83,13 +83,13 @@ export default function AdminSidebaar() {
   return (
     <>
       {/* Mobile Header / Hamburger */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-[#0f111a] border-b border-white/5 flex-shrink-0">
+      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 flex-shrink-0">
         <div className="flex-1 flex justify-center overflow-hidden mr-2">
           <div className="h-12 flex items-center justify-center shrink-0">
             <img src="/techomax.png" alt="Techomax" className="h-10 w-auto object-contain" />
           </div>
         </div>
-        <button onClick={() => setIsOpen(true)} className="text-white p-1 shrink-0">
+        <button onClick={() => setIsOpen(true)} className="text-gray-900 p-1 shrink-0">
           <Menu size={24} />
         </button>
       </div>
@@ -103,7 +103,7 @@ export default function AdminSidebaar() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0f111a] border-r border-white/5 flex flex-col h-full min-h-screen transform transition-transform duration-300 md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex-shrink-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col h-full min-h-screen transform transition-transform duration-300 md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex-shrink-0`}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-8 pl-3 md:mb-8 md:justify-center md:pl-0">
             <div className="flex justify-center items-center w-full overflow-hidden">
@@ -111,7 +111,7 @@ export default function AdminSidebaar() {
                 <img src="/techomax.png" alt="Techomax" className="h-16 w-auto max-w-[200px] object-contain drop-shadow-md" />
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white md:hidden p-1 shrink-0 ml-2">
+            <button onClick={() => setIsOpen(false)} className="text-gray-900 md:hidden p-1 shrink-0 ml-2">
               <X size={24} />
             </button>
           </div>
@@ -134,19 +134,19 @@ export default function AdminSidebaar() {
                     <button
                       onClick={() => toggleMenu(item.name)}
                       className={`w-full group flex items-center justify-between px-4 py-3 text-[14px] font-medium transition-all duration-300 relative rounded-l-xl ${
-                        isActive || isMenuOpen ? 'text-white bg-white/5' : 'text-[#8ba0b8] hover:text-[#c4d6eb] hover:bg-white/5'
+                        isActive || isMenuOpen ? 'text-gray-900 bg-[#FDF6ED]' : 'text-gray-600 hover:text-[#ABD2FA] hover:bg-gray-50'
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-[#00c8ff]' : 'text-[#8ba0b8] group-hover:text-[#c4d6eb]'}`} />
+                        <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-[#ABD2FA]' : 'text-gray-600 group-hover:text-[#ABD2FA]'}`} />
                         <span>{item.name}</span>
                       </div>
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMenuOpen ? 'rotate-180 text-white' : 'text-[#8ba0b8]'}`} />
+                      <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isMenuOpen ? 'rotate-180 text-gray-900' : 'text-gray-600'}`} />
                     </button>
                     
                     {/* Children Dropdown */}
                     <div className={`overflow-hidden transition-all duration-300 ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <div className="pl-4 py-1 space-y-1 border-l-2 border-white/5 ml-6 mt-1">
+                      <div className="pl-4 py-1 space-y-1 border-l-2 border-gray-200 ml-6 mt-1">
                         {item.children.map(child => {
                           if (!ability.can(child.action, child.subject)) return null;
                           const isChildActive = pathname.startsWith(child.activeMatch);
@@ -158,10 +158,10 @@ export default function AdminSidebaar() {
                               href={child.href}
                               onClick={() => setIsOpen(false)}
                               className={`group flex items-center gap-3 px-3 py-2 text-[13px] font-medium transition-all duration-300 rounded-lg ${
-                                isChildActive ? 'text-[#00c8ff] bg-white/5' : 'text-[#8ba0b8] hover:text-[#c4d6eb] hover:bg-white/5'
+                                isChildActive ? 'text-[#ABD2FA] bg-[#FDF6ED]' : 'text-gray-600 hover:text-[#ABD2FA] hover:bg-gray-50'
                               }`}
                             >
-                              <ChildIcon className={`w-4 h-4 ${isChildActive ? 'text-[#00c8ff]' : 'text-[#8ba0b8] group-hover:text-[#c4d6eb]'}`} />
+                              <ChildIcon className={`w-4 h-4 ${isChildActive ? 'text-[#ABD2FA]' : 'text-gray-600 group-hover:text-[#ABD2FA]'}`} />
                               <span>{child.name}</span>
                             </Link>
                           );
@@ -182,23 +182,23 @@ export default function AdminSidebaar() {
                   onClick={() => setIsOpen(false)}
                   className={`group flex items-center gap-4 px-4 py-3 text-[14px] font-medium transition-all duration-300 relative ${
                     isActive
-                      ? 'text-[#00c8ff]'
-                      : 'text-[#8ba0b8] hover:text-[#c4d6eb]'
+                      ? 'text-[#ABD2FA]'
+                      : 'text-gray-600 hover:text-[#ABD2FA]'
                   }`}
                 >
                   {/* Active Tab Background & Glowing Border */}
                   {isActive && (
-                    <div className="absolute inset-0 bg-[#1d2440] rounded-l-xl border border-[#00c8ff]/30 border-r-0 shadow-[inset_4px_0_15px_rgba(0,200,255,0.1)] -right-6 overflow-hidden">
-                       <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-[#00c8ff] shadow-[0_0_12px_rgba(0,200,255,0.8)]"></div>
+                    <div className="absolute inset-0 bg-[#FDF6ED] rounded-l-xl border border-[#ABD2FA] border-r-0 shadow-[inset_4px_0_15px_rgba(171,210,250,0.1)] -right-6 overflow-hidden">
+                       <div className="absolute top-0 bottom-0 left-0 w-[3px] bg-[#ABD2FA] shadow-[0_0_12px_rgba(171,210,250,0.8)]"></div>
                     </div>
                   )}
                   
                   {/* Hover state for inactive tabs */}
                   {!isActive && (
-                    <div className="absolute inset-0 bg-white/5 rounded-l-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -right-6"></div>
+                    <div className="absolute inset-0 bg-gray-50 rounded-l-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -right-6"></div>
                   )}
                   
-                  <Icon className={`w-[18px] h-[18px] relative z-10 transition-transform duration-300 ${isActive ? 'text-[#00c8ff]' : 'text-[#8ba0b8] group-hover:text-[#c4d6eb]'}`} strokeWidth={isActive ? 2.5 : 2} />
+                  <Icon className={`w-[18px] h-[18px] relative z-10 transition-transform duration-300 ${isActive ? 'text-[#ABD2FA]' : 'text-gray-600 group-hover:text-[#ABD2FA]'}`} strokeWidth={isActive ? 2.5 : 2} />
                   <span className="relative z-10">{item.name}</span>
                 </Link>
               );

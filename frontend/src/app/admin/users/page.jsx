@@ -78,10 +78,10 @@ export default function AdminUsers() {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900">
               Users
             </h1>
-            <p className="text-xs sm:text-sm text-[#8ba0b8] font-medium mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1">
               Manage user accounts and roles.
             </p>
           </div>
@@ -90,7 +90,7 @@ export default function AdminUsers() {
               <Link 
                 href="/admin/users/add"
                 onClick={() => dispatch(clearCreateError())}
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#00c8ff] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#ABD2FA] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 <UserPlus size={18} strokeWidth={2.5} />
                 <span>Add New User</span>
@@ -100,37 +100,37 @@ export default function AdminUsers() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col md:flex-row gap-4 md:items-center bg-[#1d2440]/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg">
+        <div className="flex flex-col md:flex-row gap-4 md:items-center bg-white backdrop-blur-md p-4 rounded-2xl border border-gray-200 shadow-lg">
           <div className="relative flex-1 w-full md:max-w-md group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8ba0b8] group-focus-within:text-[#00c8ff] transition-colors" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#ABD2FA] transition-colors" size={18} />
             <input 
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search users by email..."
-              className="w-full pl-11 pr-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-white placeholder-[#8ba0b8] font-medium"
+              className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#ABD2FA] focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-gray-900 placeholder-[#8ba0b8] font-medium"
             />
           </div>
         </div>
 
         {/* Table Container */}
-        <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
+        <div className="bg-white backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-[#1d2440] border-b border-white/10 sticky top-0 z-10">
+              <thead className="bg-[#FDF6ED] border-b border-gray-200 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Name</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Email</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Role</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Subscription</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Days Left</th>
-                  <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] text-right">Actions</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Name</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Email</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Role</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Subscription</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Days Left</th>
+                  <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-[#8ba0b8]">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-600">
                       Loading users...
                     </td>
                   </tr>
@@ -142,17 +142,17 @@ export default function AdminUsers() {
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-[#8ba0b8]">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-600">
                       No users found.
                     </td>
                   </tr>
                 ) : (
                   users.map((user) => (
-                    <tr key={user.id} className="hover:bg-white/5 transition-all duration-200 group">
-                      <td className="px-6 py-5 font-semibold text-white">{user.name || '-'}</td>
-                      <td className="px-6 py-5 text-[#8ba0b8] font-medium">{user.email}</td>
+                    <tr key={user.id} className="hover:bg-gray-50 transition-all duration-200 group">
+                      <td className="px-6 py-5 font-semibold text-gray-900">{user.name || '-'}</td>
+                      <td className="px-6 py-5 text-gray-600 font-medium">{user.email}</td>
                       <td className="px-6 py-5">
-                        <span className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm inline-flex items-center justify-center min-w-[80px] bg-[#0f111a] border border-[#00c8ff]/30 text-[#00c8ff]">
+                        <span className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm inline-flex items-center justify-center min-w-[80px] bg-white border border-[#ABD2FA] text-[#ABD2FA]">
                           {user.role?.name || 'UNKNOWN'}
                         </span>
                       </td>
@@ -166,7 +166,7 @@ export default function AdminUsers() {
                             <span className="px-2 py-1 text-[10px] font-bold uppercase rounded border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Not Started</span>
                           )
                         ) : (
-                          <span className="text-[#8ba0b8]">-</span>
+                          <span className="text-gray-600">-</span>
                         )}
                       </td>
                       <td className="px-6 py-5">
@@ -178,14 +178,14 @@ export default function AdminUsers() {
                           ) : (
                             <span className={`text-xs font-bold ${days < 30 ? 'text-orange-400' : 'text-green-400'}`}>{days} days left</span>
                           );
-                        })() : <span className="text-[#8ba0b8]">-</span>}
+                        })() : <span className="text-gray-600">-</span>}
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
                           <Can I="edit" a="user">
                             <Link 
                               href={`/admin/users/edit/${user.id}`}
-                              className="p-2 text-[#8ba0b8] hover:text-[#00c8ff] bg-white/5 border border-white/10 hover:border-[#00c8ff]/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]"
+                              className="p-2 text-gray-600 hover:text-[#ABD2FA] bg-white/5 border border-gray-200 hover:border-[#ABD2FA] rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]"
                               title="Edit User"
                             >
                               <Edit2 size={15} />
@@ -194,7 +194,7 @@ export default function AdminUsers() {
                           <Can I="delete" a="user">
                             <button 
                               onClick={() => handleDeleteClick(user.id)}
-                              className="p-2 text-[#8ba0b8] hover:text-red-400 bg-white/5 border border-white/10 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+                              className="p-2 text-gray-600 hover:text-red-400 bg-white/5 border border-gray-200 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]"
                               title="Delete User"
                             >
                               <Trash2 size={15} />

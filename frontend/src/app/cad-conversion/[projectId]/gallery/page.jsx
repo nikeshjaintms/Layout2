@@ -68,7 +68,7 @@ export default function ProjectGalleryPage({ params }) {
 
   return (
     <AuthGuard requirePermission={{ action: 'read', subject: 'gallery' }}>
-      <div className="min-h-screen bg-[#131826] flex flex-col md:flex-row text-slate-300 overflow-hidden font-sans">
+      <div className="min-h-screen bg-white flex flex-col md:flex-row text-slate-300 overflow-hidden font-sans">
         <Sidebar projectId={projectId} />
         <div className="flex-1 p-4 md:p-8 flex flex-col h-[calc(100vh-73px)] md:h-screen overflow-y-auto relative w-full">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
@@ -78,21 +78,21 @@ export default function ProjectGalleryPage({ params }) {
             <div className="flex items-center gap-3 sm:gap-5">
               <Link 
                 href={editorId ? `/cad-conversion/${projectId}/editor/${editorId}` : `/cad-conversion/${projectId}`} 
-                className="p-2 sm:p-2.5 bg-[#1d2440] border border-white/10 hover:border-[#00c8ff]/50 rounded-xl transition-all duration-300 text-slate-400 hover:text-[#00c8ff] shadow-lg group shrink-0"
+                className="p-2 sm:p-2.5 bg-[#FDF6ED] border border-gray-200 hover:border-[#ABD2FA] rounded-xl transition-all duration-300 text-gray-600 hover:text-[#ABD2FA] shadow-lg group shrink-0"
               >
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
               </Link>
               <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900">
                 Project Gallery
               </h1>
-              <p className="text-xs sm:text-sm text-[#8ba0b8] font-medium mt-1">Upload and manage project images</p>
+              <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1">Upload and manage project images</p>
               </div>
             </div>
             <Can I="create" a="gallery">
               <Link
                 href={`/cad-conversion/${projectId}/gallery/add${editorId ? '?editorId='+editorId : ''}`}
-                className="w-full sm:w-auto px-5 py-2.5 bg-[#00c8ff] hover:bg-[#00b0e6] text-[#0f111a] text-sm font-bold rounded-xl shadow-[0_0_15px_rgba(0,200,255,0.4)] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="w-full sm:w-auto px-5 py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] text-[#18181b] text-sm font-bold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 <Plus size={18} strokeWidth={2.5} /> Add New Image
               </Link>
@@ -100,60 +100,60 @@ export default function ProjectGalleryPage({ params }) {
           </div>
 
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row gap-4 md:items-center bg-[#1d2440]/60 backdrop-blur-md p-4 rounded-2xl border border-white/10 shadow-lg">
+          <div className="flex flex-col md:flex-row gap-4 md:items-center bg-white backdrop-blur-md p-4 rounded-2xl border border-gray-200 shadow-lg">
             <div className="relative flex-1 w-full md:max-w-md group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8ba0b8] group-focus-within:text-[#00c8ff] transition-colors" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-[#ABD2FA] transition-colors" size={18} />
               <input
                 type="text"
                 placeholder="Search images..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-11 pr-4 py-2.5 bg-[#0f111a]/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#00c8ff]/50 focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-white placeholder-[#8ba0b8] font-medium"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#ABD2FA] focus:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition-all text-gray-900 placeholder-[#8ba0b8] font-medium"
               />
             </div>
           </div>
 
           {/* Table Container */}
-          <div className="bg-[#1d2440]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
+          <div className="bg-white backdrop-blur-md border border-gray-200 rounded-2xl overflow-hidden shadow-xl flex-1 flex flex-col transition-all">
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-[#1d2440] border-b border-white/10 sticky top-0 z-10">
+                <thead className="bg-[#FDF6ED] border-b border-gray-200 sticky top-0 z-10">
                   <tr>
-                    <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px]">Image</th>
-                    <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] text-center">Status</th>
-                    <th className="px-6 py-5 font-bold text-[#8ba0b8] uppercase tracking-wider text-[11px] text-right">Actions</th>
+                    <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px]">Image</th>
+                    <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px] text-center">Status</th>
+                    <th className="px-6 py-5 font-bold text-gray-600 uppercase tracking-wider text-[11px] text-right">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-white/10">
                   {loading ? (
-                    <tr><td colSpan="3" className="px-6 py-12 text-center text-[#8ba0b8]">Loading images...</td></tr>
+                    <tr><td colSpan="3" className="px-6 py-12 text-center text-gray-600">Loading images...</td></tr>
                   ) : gallery.length === 0 ? (
-                    <tr><td colSpan="3" className="px-6 py-12 text-center text-[#8ba0b8]">No images found matching your criteria.</td></tr>
+                    <tr><td colSpan="3" className="px-6 py-12 text-center text-gray-600">No images found matching your criteria.</td></tr>
                   ) : (
                     gallery.map(item => (
-                      <tr key={item.id} className="hover:bg-white/5 transition-all duration-200 group">
+                      <tr key={item.id} className="hover:bg-gray-50 transition-all duration-200 group">
                         <td className="px-6 py-5">
                           <AuthImage 
                             src={item.imageUrl} 
                             alt="Gallery image" 
-                            className="w-24 h-24 object-cover rounded-lg border border-white/10 shadow-md"
+                            className="w-24 h-24 object-cover rounded-lg border border-gray-200 shadow-md"
                           />
                         </td>
                         <td className="px-6 py-5 text-center">
-                          <span className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border rounded-full shadow-sm ${item.isActive !== false ? 'bg-[#00c8ff]/10 text-[#00c8ff] border-[#00c8ff]/30' : 'bg-slate-500/10 text-slate-400 border-slate-500/30'}`}>
+                          <span className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border rounded-full shadow-sm ${item.isActive !== false ? 'bg-[#ABD2FA] text-[#18181b] border-[#ABD2FA]' : 'bg-slate-500/10 text-gray-600 border-slate-500/30'}`}>
                             {item.isActive !== false ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td className="px-6 py-5 text-right">
                           <div className="flex justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
                             <Can I="edit" a="gallery">
-                              <Link href={`/cad-conversion/${projectId}/gallery/${item.id}${editorId ? '?editorId='+editorId : ''}`} className="p-2 text-[#8ba0b8] hover:text-[#00c8ff] bg-white/5 border border-white/10 hover:border-[#00c8ff]/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]">
+                              <Link href={`/cad-conversion/${projectId}/gallery/${item.id}${editorId ? '?editorId='+editorId : ''}`} className="p-2 text-gray-600 hover:text-[#ABD2FA] bg-white/5 border border-gray-200 hover:border-[#ABD2FA] rounded-lg transition-all hover:shadow-[0_0_10px_rgba(0,200,255,0.1)]">
                                 <Edit2 size={15} />
                               </Link>
                             </Can>
                             <Can I="delete" a="gallery">
-                              <button onClick={() => handleDelete(item.id)} className="p-2 text-[#8ba0b8] hover:text-red-400 bg-white/5 border border-white/10 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                              <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-600 hover:text-red-400 bg-white/5 border border-gray-200 hover:border-red-500/50 rounded-lg transition-all hover:shadow-[0_0_10px_rgba(239,68,68,0.1)]">
                                 <Trash2 size={15} />
                               </button>
                             </Can>
@@ -174,7 +174,7 @@ export default function ProjectGalleryPage({ params }) {
               limit={limit}
               onPageChange={setCurrentPage}
               itemName="images"
-              theme="dark"
+              theme="cad"
             />
           </div>
         </div>

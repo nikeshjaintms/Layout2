@@ -100,7 +100,7 @@ export default function LayoutTransformNode({
         node.removeAttribute('fill');
       }
     });
-  }, [showPlotStatus, plots, statuses, svgRaw, selectedPlotId, appearanceSettings, readOnly]);
+  }, [showPlotStatus, plots, statuses, svgRaw, selectedPlotId, appearanceSettings, readOnly, portalNode]);
   
   // Mutable interaction state
   const stateRef = useRef({

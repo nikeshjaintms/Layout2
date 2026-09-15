@@ -87,7 +87,13 @@ export class CadConversionService {
 
   async remove(id: number, user?: any) {
     if (user) await this.validateConversionOwnership(id, user);
-    return this.prisma.cadConversion.delete({ where: { id } });
+    
+    return this.prisma.$transaction([
+      this.prisma.projectPlot.deleteMany({ where: { conversionId: id } }),
+      this.prisma.amenityPlacement.deleteMany({ where: { conversionId: id } }),
+      this.prisma.cadShapeAppearance.deleteMany({ where: { conversionId: id } }),
+      this.prisma.cadConversion.delete({ where: { id } }),
+    ]);
   }
 
   async activateLayout(id: number, user?: any) {

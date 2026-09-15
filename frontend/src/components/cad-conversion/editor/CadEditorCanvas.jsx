@@ -658,8 +658,14 @@ export default function CadEditorCanvas({
   const containerRef = useRef(null);
   const contentRef = useRef(null);
   const svgRef = useRef(null);
-
   const [documentState, setDocumentState] = useState({ viewBox: "0 0 100 100", shapes: [] });
+
+  console.log('[CANVAS RENDER]', { 
+    conversionId, 
+    plotCount: plots?.length, 
+    documentStateShapeCount: documentState?.shapes?.length,
+    timestamp: Date.now()
+  });
   const hasInitializedRef = useRef(false);
   const internalUpdateRef = useRef(false);
 
@@ -681,6 +687,13 @@ export default function CadEditorCanvas({
   const [drawStart, setDrawStart] = useState(null);
   const [currentDrawCoords, setCurrentDrawCoords] = useState(null);
   const [drawStep, setDrawStep] = useState(0);
+
+  // Lightweight preview DOM Refs
+  const previewLineRef = useRef(null);
+  const previewArrowRef = useRef(null);
+  const previewCircleRef = useRef(null);
+  const previewCurveRef = useRef(null);
+  const previewPolygonRef = useRef(null);
   const [drawEnd, setDrawEnd] = useState(null);
   const [drawPoints, _setDrawPoints] = useState([]);
   const drawPointsRef = useRef([]);
@@ -887,14 +900,6 @@ export default function CadEditorCanvas({
       const { plot } = e.detail;
       if (!plot) {
         setSelectedShapeIds([]);
-        if (initialTransformRef.current) {
-          animateTransform(
-            initialTransformRef.current.x,
-            initialTransformRef.current.y,
-            initialTransformRef.current.scale,
-            400
-          );
-        }
         return;
       }
 
@@ -902,7 +907,7 @@ export default function CadEditorCanvas({
       
       // 1. Search DOM for data-plot-id or cad-plot-* id
       if (svgRef.current) {
-        const el = svgRef.current.querySelector(`[data-plot-id="${CSS.escape(plot.id)}"], #cad-plot-${CSS.escape(plot.id)}`);
+        const el = svgRef.current.querySelector(`[data-plot-id="${plot.id}"]:not([data-cad-type="plot-label"]), #cad-plot-${plot.id}`);
         if (el && el.id) {
           shapeId = el.id;
         }
@@ -915,33 +920,6 @@ export default function CadEditorCanvas({
 
       if (shapeId) {
         setSelectedShapeIds([shapeId]);
-
-        // Calculate bbox and zoom to it
-        setTimeout(() => {
-          if (!svgRef.current || !containerRef.current) return;
-          const el = svgRef.current.querySelector(`[id="${CSS.escape(shapeId)}"]`);
-          if (el) {
-            try {
-              const bbox = el.getBBox();
-              const containerRect = containerRef.current.getBoundingClientRect();
-              
-              const padding = 0.4;
-              const scaleX = containerRect.width / (bbox.width * (1 + padding));
-              const scaleY = containerRect.height / (bbox.height * (1 + padding));
-              const newScale = Math.min(scaleX, scaleY, 50);
-              
-              const cx = bbox.x + bbox.width / 2;
-              const cy = bbox.y + bbox.height / 2;
-              
-              const targetX = (containerRect.width / 2) - cx * newScale;
-              const targetY = (containerRect.height / 2) - cy * newScale;
-              
-              animateTransform(targetX, targetY, newScale, 400);
-            } catch (err) {
-              console.warn("Could not calculate bounding box for plot", err);
-            }
-          }
-        }, 50);
       } else {
         setSelectedShapeIds([]);
       }
@@ -1370,7 +1348,7 @@ export default function CadEditorCanvas({
     if (!internalCoords || isSpaceDownRef.current) return internalCoords; // Hold space to disable snapping
     let nearest = null;
     let minDist = Infinity;
-    const snapRadius = 15 / (transformRef.current?.k || 1); 
+    const snapRadius = 15 / (transform.current.scale || 1); 
 
     const checkPt = (x, y) => {
       if (isNaN(x) || isNaN(y)) return;
@@ -1405,6 +1383,7 @@ export default function CadEditorCanvas({
   };
 
   const handlePointerDown = (e) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY };
     // Deselect placements when clicking on empty canvas
     if (activeTool === 'pointer' && e.button === 0 && selectedPlacementIds.length > 0) {
       setSelectedPlacementIds([]);
@@ -1424,7 +1403,6 @@ export default function CadEditorCanvas({
       if (e.button === 1 || isSpaceDownRef.current || e.button === 0) {
         isDragging.current = true;
         lastMouse.current = { x: e.clientX, y: e.clientY };
-        pointerDownPos.current = { x: e.clientX, y: e.clientY };
         e.preventDefault();
       }
       return;
@@ -1520,7 +1498,7 @@ export default function CadEditorCanvas({
       if (internalCoords) {
         if (drawPointsRef.current.length > 1) {
           const firstPt = drawPointsRef.current[0];
-          const scale = transformRef.current?.k || 1;
+          const scale = transform.current.scale || 1;
           if (Math.hypot(internalCoords.x - firstPt.x, internalCoords.y - firstPt.y) * scale < 15) {
             internalCoords = { x: firstPt.x, y: firstPt.y };
           } else {
@@ -1923,7 +1901,27 @@ export default function CadEditorCanvas({
     if (drawStart && (activeTool === 'draw_line' || activeTool === 'draw_circle' || activeTool === 'draw_arrow' || activeTool === 'draw_curve')) {
       const internalCoords = snapToGeometry(getSvgInternalCoords(e.clientX, e.clientY));
       if (internalCoords) {
-        setCurrentDrawCoords(internalCoords);
+        if (reqFrame.current) cancelAnimationFrame(reqFrame.current);
+        reqFrame.current = requestAnimationFrame(() => {
+          if (activeTool === 'draw_line' && previewLineRef.current) {
+            previewLineRef.current.setAttribute('x2', internalCoords.x);
+            previewLineRef.current.setAttribute('y2', internalCoords.y);
+          } else if (activeTool === 'draw_arrow' && previewArrowRef.current) {
+            previewArrowRef.current.setAttribute('d', calculateArrowPath(drawStart, internalCoords, strokeWidth));
+          } else if (activeTool === 'draw_circle' && previewCircleRef.current) {
+            const r = Math.hypot(internalCoords.x - drawStart.x, internalCoords.y - drawStart.y);
+            previewCircleRef.current.setAttribute('r', r);
+          } else if (activeTool === 'draw_curve' && drawStep === 1 && previewCurveRef.current) {
+            previewCurveRef.current.setAttribute('x2', internalCoords.x);
+            previewCurveRef.current.setAttribute('y2', internalCoords.y);
+          } else if (activeTool === 'draw_curve' && drawStep === 2 && previewCurveRef.current) {
+            const midX = (drawStart.x + drawEnd.x) / 2;
+            const midY = (drawStart.y + drawEnd.y) / 2;
+            const dx = internalCoords.x - drawEnd.x;
+            const dy = internalCoords.y - drawEnd.y;
+            previewCurveRef.current.setAttribute('d', `M ${drawStart.x} ${drawStart.y} Q ${midX + dx} ${midY + dy} ${drawEnd.x} ${drawEnd.y}`);
+          }
+        });
       }
     }
 
@@ -1932,7 +1930,7 @@ export default function CadEditorCanvas({
       if (internalCoords) {
         if (drawPoints.length > 1) {
           const firstPt = drawPoints[0];
-          const scale = transformRef.current?.k || 1;
+          const scale = transform.current.scale || 1;
           if (Math.hypot(internalCoords.x - firstPt.x, internalCoords.y - firstPt.y) * scale < 15) {
             internalCoords = { x: firstPt.x, y: firstPt.y };
           } else {
@@ -1941,7 +1939,13 @@ export default function CadEditorCanvas({
         } else {
           internalCoords = snapToGeometry(internalCoords);
         }
-        setCurrentDrawCoords(internalCoords);
+        if (reqFrame.current) cancelAnimationFrame(reqFrame.current);
+        reqFrame.current = requestAnimationFrame(() => {
+          if (previewPolygonRef.current) {
+            const pointsStr = drawPoints.map(p => `${p.x},${p.y}`).join(' ') + ` ${internalCoords.x},${internalCoords.y}`;
+            previewPolygonRef.current.setAttribute('points', pointsStr);
+          }
+        });
       }
     }
 
@@ -2011,7 +2015,7 @@ export default function CadEditorCanvas({
     const newShape = {
       id: shapeId,
       type: '',
-      attributes: { stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
+      attributes: { stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true", "data-annotation": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
       transform: { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 },
       children: []
     };
@@ -2051,7 +2055,7 @@ export default function CadEditorCanvas({
     const newShape = {
       id: shapeId,
       type: 'path',
-      attributes: { d: `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`, stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
+      attributes: { d: `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`, stroke: strokeColor, "stroke-width": strokeWidth, fill: "none", "data-custom-color": "true", "data-annotation": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
       transform: { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 },
       children: []
     };
@@ -2075,7 +2079,7 @@ export default function CadEditorCanvas({
     const newShape = {
       id: shapeId,
       type: 'polygon',
-      attributes: { points: pointsStr, fill: "none", stroke: strokeColor, "stroke-width": strokeWidth, "data-custom-color": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
+      attributes: { points: pointsStr, fill: "none", stroke: strokeColor, "stroke-width": strokeWidth, "data-custom-color": "true", "data-annotation": "true", "vector-effect": "non-scaling-stroke", "pointer-events": "all" },
       transform: { tx: 0, ty: 0, rot: 0, sx: 1, sy: 1 },
       children: []
     };
@@ -2196,7 +2200,7 @@ export default function CadEditorCanvas({
       return;
     }
     if (activeTool === 'draw_curve' && drawStep === 2 && drawStart && drawEnd) {
-      const internalCoords = getSvgInternalCoords(e.clientX, e.clientY) || currentDrawCoords;
+      const internalCoords = snapToGeometry(getSvgInternalCoords(e.clientX, e.clientY)) || currentDrawCoords;
       const midX = (drawStart.x + drawEnd.x) / 2;
       const midY = (drawStart.y + drawEnd.y) / 2;
       const dx = internalCoords.x - drawEnd.x;
@@ -2214,9 +2218,16 @@ export default function CadEditorCanvas({
     }
 
     if (drawStart && currentDrawCoords && activeTool !== 'draw_curve') {
-      const endCoords = getSvgInternalCoords(e.clientX, e.clientY) || currentDrawCoords;
+      const endCoords = snapToGeometry(getSvgInternalCoords(e.clientX, e.clientY)) || currentDrawCoords;
 
-      commitDrawing(drawStart, endCoords);
+      const downPos = pointerDownPos.current;
+      const dragDistanceScreen = downPos 
+        ? Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y) 
+        : 999;
+
+      if (dragDistanceScreen >= 8) {
+        commitDrawing(drawStart, endCoords);
+      }
       setDrawStart(null);
       setCurrentDrawCoords(null);
     }
@@ -2236,6 +2247,7 @@ export default function CadEditorCanvas({
     }
 
     isDragging.current = false;
+    pointerDownPos.current = null;
   };
 
   const handleWheel = (e) => {
@@ -2553,7 +2565,6 @@ export default function CadEditorCanvas({
                 />
               ))}
               <PlotLabelsOverlay
-                documentState={documentState}
                 svgRef={svgRef}
                 scale={transform.current.scale}
                 plots={plots}
@@ -2659,35 +2670,40 @@ export default function CadEditorCanvas({
               >
                 {activeTool === 'draw_line' && drawStart && currentDrawCoords && (
                   <line
+                    ref={previewLineRef}
                     x1={drawStart.x} y1={drawStart.y}
                     x2={currentDrawCoords.x} y2={currentDrawCoords.y}
-                    stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4"
+                    stroke="#a5b4fc" strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke"
                   />
                 )}
                 {activeTool === 'draw_arrow' && drawStart && currentDrawCoords && (
                   <path
+                    ref={previewArrowRef}
                     d={calculateArrowPath(drawStart, currentDrawCoords, strokeWidth)}
-                    fill="none" stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4" strokeLinejoin="round" strokeLinecap="round"
+                    fill="none" stroke="#a5b4fc" strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round"
                   />
                 )}
                 {activeTool === 'draw_circle' && drawStart && currentDrawCoords && (
                   <circle
+                    ref={previewCircleRef}
                     cx={drawStart.x} cy={drawStart.y}
                     r={Math.sqrt(Math.pow(currentDrawCoords.x - drawStart.x, 2) + Math.pow(currentDrawCoords.y - drawStart.y, 2))}
-                    stroke="#a5b4fc" strokeWidth={strokeWidth} fill="none" strokeDasharray="4"
+                    stroke="#a5b4fc" strokeWidth={strokeWidth} fill="none" vectorEffect="non-scaling-stroke"
                   />
                 )}
                 {activeTool === 'draw_curve' && drawStart && currentDrawCoords && drawStep === 1 && (
                   <line
+                    ref={previewCurveRef}
                     x1={drawStart.x} y1={drawStart.y}
-                    x2={snapToGeometry(currentDrawCoords).x} y2={snapToGeometry(currentDrawCoords).y}
-                    stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4"
+                    x2={currentDrawCoords.x} y2={currentDrawCoords.y}
+                    stroke="#a5b4fc" strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke"
                   />
                 )}
                 {activeTool === 'draw_curve' && drawStart && drawEnd && currentDrawCoords && drawStep === 2 && (
                   <path
-                    d={`M ${drawStart.x} ${drawStart.y} Q ${((drawStart.x + drawEnd.x) / 2) + (snapToGeometry(currentDrawCoords).x - drawEnd.x)} ${((drawStart.y + drawEnd.y) / 2) + (snapToGeometry(currentDrawCoords).y - drawEnd.y)} ${drawEnd.x} ${drawEnd.y}`}
-                    fill="none" stroke="#a5b4fc" strokeWidth={strokeWidth} strokeDasharray="4"
+                    ref={previewCurveRef}
+                    d={`M ${drawStart.x} ${drawStart.y} Q ${((drawStart.x + drawEnd.x) / 2) + (currentDrawCoords.x - drawEnd.x)} ${((drawStart.y + drawEnd.y) / 2) + (currentDrawCoords.y - drawEnd.y)} ${drawEnd.x} ${drawEnd.y}`}
+                    fill="none" stroke="#a5b4fc" strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke"
                   />
                 )}
 
@@ -2698,8 +2714,9 @@ export default function CadEditorCanvas({
                   return (
                     <>
                       <polyline
+                        ref={previewPolygonRef}
                         points={drawPoints.map(p => `${p.x},${p.y}`).join(' ') + ` ${currentDrawCoords.x},${currentDrawCoords.y}`}
-                        fill="none" stroke="#00c8ff" strokeWidth={strokeWidth} strokeDasharray="4" vectorEffect="non-scaling-stroke"
+                        fill="none" stroke="#00c8ff" strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke"
                       />
                       {drawPoints.map((p, i) => (
                         <rect 

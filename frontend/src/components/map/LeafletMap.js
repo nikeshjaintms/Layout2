@@ -616,6 +616,19 @@ const LeafletMap = forwardRef(function LeafletMap(
           box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
         .boundary-vertex { cursor: move !important; }
+        
+        /* Grid Overlay for premium engineering visual aesthetic */
+        .leaflet-container::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+          background-size: 40px 40px;
+          pointer-events: none;
+          z-index: 250; /* Between tile-pane (200) and overlay-pane (400) */
+        }
       `}</style>
 
       {/* Search bar */}
@@ -650,8 +663,8 @@ const LeafletMap = forwardRef(function LeafletMap(
         <style>{`
           .leaflet-tile-pane {
             filter: brightness(${
-              (currentZoom === null || baseZoom === null) ? 0.15 :
-              currentZoom < baseZoom ? 1.0 : 0.15
+              (currentZoom === null || baseZoom === null) ? 0.45 :
+              currentZoom < baseZoom ? 1.0 : 0.45
             });
             transition: filter 300ms ease;
           }

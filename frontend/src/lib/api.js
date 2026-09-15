@@ -254,6 +254,7 @@ export async function getProjectPlots(projectId, options = {}) {
   if (options.assignment) params.append('assignment', options.assignment);
   if (options.sortBy) params.append('sortBy', options.sortBy);
   if (options.sortOrder) params.append('sortOrder', options.sortOrder);
+  if (options.conversionId) params.append('conversionId', options.conversionId);
 
   const queryString = params.toString();
   const url = `/api/projects/${projectId}/plots${queryString ? `?${queryString}` : ''}`;
@@ -273,6 +274,7 @@ export async function getPublicProjectPlots(projectId, options = {}) {
   if (options.assignment) params.append('assignment', options.assignment);
   if (options.sortBy) params.append('sortBy', options.sortBy);
   if (options.sortOrder) params.append('sortOrder', options.sortOrder);
+  if (options.conversionId) params.append('conversionId', options.conversionId);
 
   const queryString = params.toString();
   const url = `/api/projects/${projectId}/plots/public${queryString ? `?${queryString}` : ''}`;

@@ -37,46 +37,46 @@ export default function AdminNavbar() {
   };
 
   return (
-    <header className="h-16 bg-[#0f111a] border-b border-white/5 flex items-center justify-end px-6 shrink-0 sticky top-0 z-40">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6 shrink-0 sticky top-0 z-40">
       <div className="relative" ref={dropdownRef}>
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-3 px-3 py-1.5 rounded-xl transition-colors duration-200 ${isOpen ? 'bg-white/5' : 'hover:bg-white/5'}`}
+          className={`flex items-center gap-3 px-3 py-1.5 rounded-xl transition-colors duration-200 ${isOpen ? 'bg-white/5' : 'hover:bg-gray-50'}`}
         >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00c8ff] to-[#0066FF] flex items-center justify-center shadow-[0_0_10px_rgba(0,200,255,0.3)]">
-            <span className="text-white font-bold text-sm">
+            <span className="text-gray-900 font-bold text-sm">
               {initial}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-white hidden sm:block">
+            <span className="text-sm font-medium text-gray-900 hidden sm:block">
               Hi, {displayName}
             </span>
             <ChevronDown 
               size={16} 
-              className={`text-[#8ba0b8] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+              className={`text-gray-600 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
             />
           </div>
         </button>
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-[#131828] border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="px-5 py-4 border-b border-white/5">
-              <p className="text-sm font-bold text-white truncate">{displayName}</p>
-              <p className="text-xs text-[#8ba0b8] truncate mt-0.5">{displayEmail}</p>
+          <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-5 py-4 border-b border-gray-200">
+              <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
+              <p className="text-xs text-gray-600 truncate mt-0.5">{displayEmail}</p>
             </div>
             
             {/* Menu Actions */}
             <div className="p-2 space-y-1">
               <button 
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#c4d6eb] hover:text-white hover:bg-white/5 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                 onClick={() => {
                   setIsOpen(false);
                   setIsPasswordModalOpen(true);
                 }}
               >
-                <Shield size={16} className="text-[#8ba0b8]" />
+                <Shield size={16} className="text-gray-500" />
                 Change Password
               </button>
               

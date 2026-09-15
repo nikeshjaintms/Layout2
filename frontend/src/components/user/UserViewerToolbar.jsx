@@ -12,6 +12,7 @@ import UserProjectInfoModal from './UserProjectInfoModal';
 
 export default function UserViewerToolbar({ 
   project, 
+  conversionId,
   layoutName, 
   zoomIn, 
   zoomOut, 
@@ -28,7 +29,15 @@ export default function UserViewerToolbar({
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   
   useEffect(() => {
-    if (project?.id) {
+    if (project?.id && conversionId) {
+      getPublicProjectPlots(project.id, { pagination: false, conversionId })
+        .then(data => {
+          if (data && Array.isArray(data)) {
+            setPlots(data);
+          }
+        })
+        .catch(err => console.error('Failed to load project plots:', err));
+    } else if (project?.id && isMapView) {
       getPublicProjectPlots(project.id, { pagination: false })
         .then(data => {
           if (data && Array.isArray(data)) {
@@ -37,7 +46,7 @@ export default function UserViewerToolbar({
         })
         .catch(err => console.error('Failed to load project plots:', err));
     }
-  }, [project?.id]);
+  }, [project?.id, conversionId, isMapView]);
 
   const getFilteredPlots = () => {
     if (!searchQuery.trim()) return [];
@@ -178,46 +187,72 @@ export default function UserViewerToolbar({
 
   return (
     <>
-      {/* Right-side Floating Action Buttons (Below compass) */}
-      <div className="fixed top-20 right-4 flex flex-col gap-2.5 z-50 pointer-events-auto items-end">
-        {/* Share */}
+      {/* Floating Zoom Controls (Top Left) */}
+      <div className="fixed top-6 left-6 z-[1000] flex items-center gap-1 sm:gap-1.5 bg-[#0f111a]/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/5 rounded-full px-1.5 py-1 sm:px-2 sm:py-1.5 pointer-events-auto">
         <button
-          onClick={handleShare}
-          className="w-10 sm:w-[110px] h-10 sm:h-[40px] bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center sm:justify-start sm:px-4 gap-2.5 text-[13px] font-medium tracking-wide"
-          title="Share Project"
+          onClick={() => zoomOut()}
+          className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
+          title="Zoom Out"
         >
-          <Share2 className="w-4 h-4" />
-          <span className="hidden sm:inline">Share</span>
+          <ZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+        
+        <div className="w-10 sm:w-14 text-center text-[10px] sm:text-xs font-bold text-white tracking-widest font-mono">
+          {zoomPercent}%
+        </div>
+
+        <button
+          onClick={() => zoomIn()}
+          className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
+          title="Zoom In"
+        >
+          <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
 
-        {/* Locate */}
-        <button
-          onClick={handleLocate}
-          className="w-10 sm:w-[110px] h-10 sm:h-[40px] bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center sm:justify-start sm:px-4 gap-2.5 text-[13px] font-medium tracking-wide"
-          title="Locate on Map"
-        >
-          <Navigation className="w-4 h-4 fill-transparent" />
-          <span className="hidden sm:inline">Locate</span>
-        </button>
+        <div className="h-3 sm:h-4 w-px bg-white/10 mx-0.5 sm:mx-1"></div>
 
-        {/* Info */}
         <button
-          onClick={() => setIsInfoOpen(true)}
-          className="w-10 sm:w-[110px] h-10 sm:h-[40px] bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center sm:justify-start sm:px-4 gap-2.5 text-[13px] font-medium tracking-wide"
-          title="Project Info"
+          onClick={() => centerView()}
+          className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
+          title="Fit to Screen"
         >
-          <Info className="w-4 h-4" />
-          <span className="hidden sm:inline">Info</span>
+          <Maximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+        
+        <button
+          onClick={() => resetTransform()}
+          className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
+          title="Reset Zoom"
+        >
+          <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </button>
       </div>
 
-    <div className="absolute bottom-4 sm:bottom-auto sm:top-0 left-0 w-full z-[1000] pointer-events-none p-4">
-      <div className="flex flex-row items-end sm:items-center justify-between gap-4 max-w-7xl mx-auto w-full">
+      {/* Floating Legend Panel (Right Aligned) */}
+      {showPlotStatus && plotStatuses.length > 0 && (
+        <div className="fixed bottom-[8.5rem] right-6 flex flex-col gap-1 animate-in fade-in slide-in-from-right-4 duration-300 pointer-events-none z-[1000]">
+          {plotStatuses.map(status => (
+            <div key={status.id} className="flex items-center flex-row-reverse gap-1.5">
+              <span 
+                className="w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_4px_rgba(0,0,0,0.8)] border border-white/20" 
+                style={{ backgroundColor: status.fillColor || '#888' }}
+              />
+              <span className="text-[8px] text-white/90 font-bold tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] text-right">
+                {status.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom-Right Controls Panel */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col items-end gap-2 sm:gap-3 z-[1000] pointer-events-none max-w-[calc(100vw-2rem)] overflow-hidden">
         
-        {/* Left Side: Search Bar & Plot Status */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <div className="relative w-full max-w-[200px] sm:max-w-none sm:w-[180px]">
-            <div className={`flex items-center h-[36px] sm:h-[44px] bg-[#0f111a]/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/5 rounded-full px-3 sm:px-4 pointer-events-auto transition-all duration-300 focus-within:border-[#00c8ff]/50 focus-within:shadow-[0_0_15px_rgba(0,200,255,0.2)]`}>
+        {/* Top Row: Search & Plot Status */}
+        <div className="flex flex-row items-center justify-end gap-2 sm:gap-3 pointer-events-auto w-full">
+          {/* Search Bar */}
+          <div className="relative w-[140px] sm:w-[180px] shrink-0">
+            <div className={`flex items-center h-[36px] sm:h-[44px] bg-[#0f111a]/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/5 rounded-full px-2 sm:px-4 pointer-events-auto transition-all duration-300 focus-within:border-[#00c8ff]/50 focus-within:shadow-[0_0_15px_rgba(0,200,255,0.2)]`}>
               <button 
                 onClick={executeSearch}
                 className="p-1 hover:bg-white/10 rounded-full transition-colors group mr-1"
@@ -250,95 +285,68 @@ export default function UserViewerToolbar({
               )}
             </div>
           </div>
-        {/* Plot Status (Moved to left side for mobile) */}
-        <div className="relative flex items-center justify-between gap-2.5 px-4 h-[36px] sm:h-[44px] bg-[#0f111a]/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/5 rounded-full pointer-events-auto w-full max-w-[200px] sm:max-w-none sm:w-[180px]">
-          <span className="text-[10px] font-bold text-[#8ba0b8] uppercase tracking-[0.2em]">
-            Plot Status
-          </span>
-          <button 
-            onClick={onTogglePlotStatus}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-all duration-300 focus:outline-none shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)] ${showPlotStatus ? 'bg-[#00c8ff]' : 'bg-[#131826] border border-white/5'}`}
-            aria-label="Toggle plot status"
-          >
-            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPlotStatus ? 'translate-x-4.5 shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'translate-x-1 opacity-70'}`} />
-          </button>
-        </div>
-        </div>
-
-        {/* Center: Zoom Controls */}
-        <div className="fixed top-4 left-4 sm:static flex items-center gap-1 sm:gap-1.5 bg-[#0f111a]/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/5 rounded-full px-1.5 py-1 sm:px-2 sm:py-1.5 pointer-events-auto z-50">
-          <button
-            onClick={() => zoomOut()}
-            className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
           
-          <div className="w-10 sm:w-14 text-center text-[10px] sm:text-xs font-bold text-white tracking-widest font-mono">
-            {zoomPercent}%
+          {/* Plot Status */}
+          <div className="relative flex items-center justify-between gap-1.5 sm:gap-2.5 px-3 sm:px-4 h-[36px] sm:h-[44px] bg-[#0f111a]/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/5 rounded-full pointer-events-auto w-[130px] sm:w-[180px] shrink-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-[#8ba0b8] uppercase tracking-[0.1em] sm:tracking-[0.2em] truncate">
+              Plot Status
+            </span>
+            <button 
+              onClick={onTogglePlotStatus}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-all duration-300 focus:outline-none shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)] ${showPlotStatus ? 'bg-[#00c8ff]' : 'bg-[#131826] border border-white/5'}`}
+              aria-label="Toggle plot status"
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${showPlotStatus ? 'translate-x-4.5 shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'translate-x-1 opacity-70'}`} />
+            </button>
           </div>
-
-          <button
-            onClick={() => zoomIn()}
-            className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
-
-          <div className="h-3 sm:h-4 w-px bg-white/10 mx-0.5 sm:mx-1"></div>
-
-          <button
-            onClick={() => centerView()}
-            className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
-            title="Fit to Screen"
-          >
-            <Maximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
-          
-          <button
-            onClick={() => resetTransform()}
-            className="p-1 sm:p-1.5 text-[#8ba0b8] hover:text-[#00c8ff] hover:bg-[#00c8ff]/10 rounded-full transition-all duration-300"
-            title="Reset Zoom"
-          >
-            <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          </button>
         </div>
 
-        {/* Floating Legend Panel (Transparent, no box) */}
-        {showPlotStatus && plotStatuses.length > 0 && (
-          <div className="fixed top-[4.5rem] left-6 sm:left-6 sm:top-[4.5rem] flex flex-col gap-1 animate-in fade-in slide-in-from-left-4 duration-300 pointer-events-none z-50">
-            {plotStatuses.map(status => (
-              <div key={status.id} className="flex items-center gap-1.5">
-                <span 
-                  className="w-2 h-2 rounded-full flex-shrink-0 shadow-[0_0_4px_rgba(0,0,0,0.8)] border border-white/20" 
-                  style={{ backgroundColor: status.fillColor || '#888' }}
-                />
-                <span className="text-[8px] text-white/90 font-bold tracking-widest uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                  {status.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Bottom Row: Actions */}
+        <div className="flex flex-row items-center justify-end gap-1.5 sm:gap-3 pointer-events-auto w-full">
+          {/* Locate */}
+          <button
+            onClick={handleLocate}
+            className="w-[36px] h-[36px] sm:w-auto sm:h-[44px] p-0 sm:px-4 bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 text-[13px] font-medium tracking-wide shrink-0"
+            title="Locate on Map"
+          >
+            <Navigation className="w-4 h-4 fill-transparent" />
+            <span className="hidden sm:inline">Locate</span>
+          </button>
 
-        {/* Right Side: Actions (Gallery & Map) */}
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 pointer-events-none">
-          
+          {/* Info */}
+          <button
+            onClick={() => setIsInfoOpen(true)}
+            className="w-[36px] h-[36px] sm:w-auto sm:h-[44px] p-0 sm:px-4 bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 text-[13px] font-medium tracking-wide shrink-0"
+            title="Project Info"
+          >
+            <Info className="w-4 h-4" />
+            <span className="hidden sm:inline">Info</span>
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            className="w-[36px] h-[36px] sm:w-auto sm:h-[44px] p-0 sm:px-4 bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center sm:justify-start gap-2 text-[13px] font-medium tracking-wide shrink-0"
+            title="Share Project"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
+
           {/* Gallery */}
           <button
             onClick={() => setIsGalleryOpen(true)}
-            className="w-[64px] sm:w-[180px] h-[36px] sm:h-[44px] px-0 sm:px-4 py-1.5 sm:py-0 bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center gap-2 text-[13px] sm:text-[14px] font-medium tracking-wide pointer-events-auto"
+            className="w-auto px-3 sm:px-4 sm:w-[120px] lg:w-[180px] h-[36px] sm:h-[44px] bg-[#1a1d24]/90 backdrop-blur-md shadow-lg border border-white/10 rounded-full text-[#a1a1aa] hover:text-white transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-[14px] font-medium tracking-wide shrink-0"
             title="View Gallery"
           >
             <Images className="w-4 h-4" />
             <span className="hidden sm:inline">Gallery</span>
           </button>
 
+          {/* Map/Layout */}
           <Link
             href={`/projects/${project?.id}${isMapView ? '' : '/map'}`}
-            className="w-[64px] sm:w-[180px] h-[36px] sm:h-[44px] px-0 sm:px-4 py-1.5 sm:py-0 bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 rounded-full transition-all duration-300 flex items-center justify-center gap-2 text-[11px] sm:text-[12px] font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_20px_rgba(0,200,255,0.4)] pointer-events-auto"
+            className="w-auto px-3 sm:px-4 sm:w-[120px] lg:w-[180px] h-[36px] sm:h-[44px] bg-[#00c8ff]/10 hover:bg-[#00c8ff] text-[#00c8ff] hover:text-[#0f111a] border border-[#00c8ff]/30 rounded-full transition-all duration-300 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-[12px] font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_20px_rgba(0,200,255,0.4)] shrink-0"
           >
             {isMapView ? (
               <>
@@ -352,23 +360,20 @@ export default function UserViewerToolbar({
               </>
             )}
           </Link>
-
         </div>
-
       </div>
-    </div>
-    
-    <UserProjectGalleryModal 
-      isOpen={isGalleryOpen} 
-      onClose={() => setIsGalleryOpen(false)} 
-      projectId={project?.id} 
-    />
+      
+      <UserProjectGalleryModal 
+        isOpen={isGalleryOpen} 
+        onClose={() => setIsGalleryOpen(false)} 
+        projectId={project?.id} 
+      />
 
-    <UserProjectInfoModal 
-      isOpen={isInfoOpen} 
-      onClose={() => setIsInfoOpen(false)} 
-      project={project}
-    />
+      <UserProjectInfoModal 
+        isOpen={isInfoOpen} 
+        onClose={() => setIsInfoOpen(false)} 
+        project={project}
+      />
     </>
   );
 }
