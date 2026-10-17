@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Undo2, Redo2, Maximize, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Undo2, Redo2, Maximize, RefreshCw, Check } from 'lucide-react';
 import { ColorPicker, ConfigProvider, theme } from 'antd';
 
 export default function CadEditorTopBar({ 
@@ -28,6 +28,10 @@ export default function CadEditorTopBar({
   selectedShapes,
   showPlotStatus,
   onTogglePlotStatus,
+  autoSave = false,
+  onToggleAutoSave,
+  autoSaveStatus = 'idle',
+  hasUnsavedChanges = false,
   isMobileSidebarOpen,
   onToggleMobileSidebar,
   plots,
@@ -318,17 +322,73 @@ export default function CadEditorTopBar({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-6">
-        <div className="flex items-center gap-2 md:mr-2">
+        <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
+        <div className="flex items-center gap-2 md:mr-1">
           <span className="hidden md:inline text-xs font-bold uppercase tracking-wider" style={{ color: headerSubText }}>Plot Status</span>
           <button 
+            type="button"
             onClick={onTogglePlotStatus}
-            className="w-8 h-4 rounded-full relative transition-colors shrink-0"
+            className="w-8 h-4 rounded-full relative transition-colors shrink-0 focus:outline-none"
             style={{ backgroundColor: showPlotStatus ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', boxShadow: showPlotStatus ? `0 0 10px ${btnBg}80` : 'none' }}
+            title={showPlotStatus ? "Hide plot status overlay" : "Show plot status overlay"}
           >
             <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${showPlotStatus ? 'left-[18px]' : 'left-0.5'}`} />
           </button>
         </div>
+
+        {/* Auto Save Toggle */}
+        <div className="flex items-center gap-2 md:mr-1">
+          <span 
+            onClick={onToggleAutoSave}
+            className="hidden md:inline text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors" 
+            style={{ color: autoSave ? btnBg : headerSubText }}
+            title={autoSave ? "Auto Save is ON (Changes save automatically)" : "Auto Save is OFF (Click to turn ON)"}
+          >
+            Auto Save
+          </span>
+          <button 
+            type="button"
+            onClick={onToggleAutoSave}
+            className="w-8 h-4 rounded-full relative transition-colors shrink-0 focus:outline-none"
+            style={{ 
+              backgroundColor: autoSave ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
+              boxShadow: autoSave ? `0 0 10px ${btnBg}80` : 'none' 
+            }}
+            title={autoSave ? "Auto Save is ON (Changes save automatically)" : "Auto Save is OFF (Click to turn ON)"}
+            aria-label="Toggle Auto Save"
+          >
+            <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${autoSave ? 'left-[18px]' : 'left-0.5'}`} />
+          </button>
+        </div>
+
+        {/* Auto Save Status Badge */}
+        {autoSave && (
+          <div className="hidden xl:flex items-center text-[11px] font-medium tracking-wide">
+            {autoSaveStatus === 'saving' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-amber-300 bg-amber-400/10 border border-amber-400/30 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                Saving...
+              </span>
+            )}
+            {autoSaveStatus === 'saved' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 transition-all duration-300">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                Saved
+              </span>
+            )}
+            {autoSaveStatus === 'error' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-rose-400 bg-rose-400/10 border border-rose-400/30">
+                Auto-save failed
+              </span>
+            )}
+            {autoSaveStatus === 'idle' && hasUnsavedChanges && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-sky-300/80 bg-sky-500/10 border border-sky-400/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                Unsaved edits
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5 md:gap-4">
           <div className="flex items-center gap-0.5 md:gap-2 border rounded-lg p-0.5 md:p-1" style={inputStyle}>
@@ -367,8 +427,9 @@ export default function CadEditorTopBar({
             disabled={isSaving}
             className="flex items-center justify-center min-w-[44px] md:min-w-[72px] h-6 md:h-8 rounded-lg text-[10px] md:text-xs font-bold tracking-wider transition-all disabled:opacity-50"
             style={{ backgroundColor: btnBg, color: btnText, boxShadow: `0 0 15px ${btnBg}4d` }}
+            title={autoSave ? "Force immediate save" : "Save project"}
           >
-            {isSaving ? '...' : 'SAVE'}
+            {isSaving ? (autoSaveStatus === 'saving' ? 'SAVING...' : '...') : 'SAVE'}
           </button>
         </div>
 
