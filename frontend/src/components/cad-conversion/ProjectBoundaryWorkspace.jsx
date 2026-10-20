@@ -180,6 +180,7 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
   };
 
   const handleSave = async () => {
+    mapRef.current?.applyEdit?.();
     if (!boundary || !boundary.geoJson) return;
     setSaving(true);
 
@@ -220,8 +221,24 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
         setBoundary(prev => ({ ...prev, id: created.id }));
       }
       setBoundaryDirty(false);
+      Swal.fire({
+        title: 'Saved!',
+        text: 'Boundary has been saved successfully.',
+        icon: 'success',
+        background: '#18181b',
+        color: '#fff',
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (err) {
       console.error('Failed to save boundary', err);
+      Swal.fire({
+        title: 'Error',
+        text: err?.response?.data?.message || err?.message || 'Failed to save boundary.',
+        icon: 'error',
+        background: '#18181b',
+        color: '#fff',
+      });
     } finally {
       setSaving(false);
     }
@@ -368,7 +385,7 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
             <MousePointer2 size={14} className="sm:w-4 sm:h-4" />
           </button>
           <button
-            className={`p-1 sm:p-1.5 rounded-md transition-colors shrink-0 ${drawMode === BOUNDARY_DRAW_MODE.POLYGON ? 'bg-[#ABD2FA] text-[#ABD2FA] border border-[#ABD2FA]' : 'text-gray-600 hover:text-[#ABD2FA] hover:bg-gray-100'}`}
+            className={`p-1 sm:p-1.5 rounded-md transition-colors shrink-0 ${drawMode === BOUNDARY_DRAW_MODE.POLYGON ? 'bg-[#ABD2FA] text-[#18181b] border border-[#ABD2FA]' : 'text-gray-600 hover:text-[#ABD2FA] hover:bg-gray-100'}`}
             onClick={async () => {
               if (boundary) {
                 const result = await Swal.fire({
@@ -395,7 +412,7 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
             <Hexagon size={14} className="sm:w-4 sm:h-4" />
           </button>
           <button
-            className={`p-1 sm:p-1.5 rounded-md transition-colors shrink-0 ${drawMode === BOUNDARY_DRAW_MODE.EDIT ? 'bg-[#ABD2FA]/30 text-[#ABD2FA] border border-[#ABD2FA]' : 'text-gray-600 hover:text-[#ABD2FA] hover:bg-gray-100'}`}
+            className={`p-1 sm:p-1.5 rounded-md transition-colors shrink-0 ${drawMode === BOUNDARY_DRAW_MODE.EDIT ? 'bg-[#ABD2FA] text-[#18181b] border border-[#ABD2FA]' : 'text-gray-600 hover:text-[#ABD2FA] hover:bg-gray-100'}`}
             onClick={() => {
               if (boundary) setDrawMode(BOUNDARY_DRAW_MODE.EDIT);
             }}
@@ -531,7 +548,7 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
             {layouts.length > 0 && (
               <Link
                 href={`/cad-conversion/${projectId}/editor/${layouts.find(l => l.isActive)?.id || layouts[0].id}`}
-                className="w-full flex items-center justify-center py-2 lg:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] lg:text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_15px_rgba(0,200,255,0.3)] gap-2"
+                className="w-full flex items-center justify-center py-2 lg:py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] text-[#18181b] border border-[#ABD2FA] text-[10px] lg:text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm hover:shadow-md gap-2"
               >
                 Continue to Editor
               </Link>
@@ -540,17 +557,17 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
             {boundary && (
               <>
                 <button
-                  disabled={saving || historyIndex <= 0}
+                  disabled={saving || !boundary}
                   onClick={handleSave}
-                  className="w-full py-2 lg:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] disabled:opacity-50 text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] lg:text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-[0_0_10px_rgba(0,200,255,0.1)] hover:shadow-[0_0_15px_rgba(0,200,255,0.3)] flex items-center justify-center gap-2"
+                  className="w-full py-2 lg:py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] disabled:opacity-50 text-[#18181b] border border-[#ABD2FA] text-[10px] lg:text-xs font-bold uppercase tracking-wider rounded-lg transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
                 >
                   {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  {saving ? 'Saving...' : 'Save Boundary'}
+                  {saving ? 'Saving...' : (boundaryDirty ? 'Save Changes' : 'Save Boundary')}
                 </button>
 
                 <button
                   onClick={handleDelete}
-                  className="w-full py-2 lg:py-2.5 bg-red-500/10 hover:bg-red-500 border border-red-500/30 text-red-400 hover:text-gray-900 text-[10px] lg:text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
+                  className="w-full py-2 lg:py-2.5 bg-red-500/10 hover:bg-red-500 border border-red-500/30 text-red-500 hover:text-white text-[10px] lg:text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
                 >
                   <Trash2 size={16} />
                   Delete Boundary

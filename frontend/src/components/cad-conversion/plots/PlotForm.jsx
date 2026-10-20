@@ -349,7 +349,7 @@ export default function PlotForm({ projectId, plotId, initialData }) {
             <button 
               type="button" 
               onClick={() => setFormList([...formList, { ...emptyForm, statusId: statuses.length > 0 ? statuses[0].id : '' }])} 
-              className="w-full py-4 mt-4 border-2 border-dashed border-[#ABD2FA] rounded-2xl text-[#ABD2FA] hover:bg-[#ABD2FA] hover:border-[#ABD2FA] flex justify-center items-center gap-2 transition-all font-bold text-sm shadow-sm"
+              className="w-full py-4 mt-4 border-2 border-dashed border-[#ABD2FA] rounded-2xl text-[#18181b] bg-[#ABD2FA]/10 hover:bg-[#ABD2FA] hover:text-[#18181b] hover:border-[#ABD2FA] flex justify-center items-center gap-2 transition-all font-bold text-sm shadow-sm"
             >
               <Plus size={18} strokeWidth={2.5} /> Add More Plots
             </button>

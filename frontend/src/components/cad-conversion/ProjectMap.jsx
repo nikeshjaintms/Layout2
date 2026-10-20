@@ -94,7 +94,7 @@ export default function ProjectMap({ project }) {
             <div className="p-5 flex flex-col space-y-4 bg-white/5">
                <Link 
                  href={`/cad-conversion/${project.id}/map`}
-                 className="mt-2 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] w-full"
+                 className="mt-2 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] text-[#18181b] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-sm hover:shadow-md w-full"
                >
                  Continue to Map
                  <ArrowRight size={16} />
@@ -115,7 +115,7 @@ export default function ProjectMap({ project }) {
 
             <Link 
               href={`/cad-conversion/${project.id}/map`}
-              className="mt-4 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] w-full"
+              className="mt-4 flex items-center justify-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] text-[#18181b] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-sm hover:shadow-md w-full"
             >
               Continue to Map
               <ArrowRight size={16} />

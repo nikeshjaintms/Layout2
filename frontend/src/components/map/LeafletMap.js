@@ -284,6 +284,17 @@ const LeafletMap = forwardRef(function LeafletMap(
     let markers = [];
     let midMarkers = [];
 
+    function finishEdit() {
+      if (!latLngs || latLngs.length < 3) return;
+      const coords = [...latLngs, latLngs[0]].map((ll) => [ll.lng, ll.lat]);
+      const newGeo = {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [coords] },
+        properties: {},
+      };
+      onMoveComplete?.(activeBoundaryId, newGeo);
+    }
+
     function buildMarkers() {
       markers.forEach(m => { try { map.removeLayer(m); } catch {} });
       midMarkers.forEach(m => { try { map.removeLayer(m); } catch {} });
@@ -317,6 +328,7 @@ const LeafletMap = forwardRef(function LeafletMap(
         
         m.on('dragend', () => {
           map.dragging.enable();
+          finishEdit();
         });
 
         // Double click or Long Press (contextmenu) to delete vertex
@@ -327,6 +339,7 @@ const LeafletMap = forwardRef(function LeafletMap(
           latLngs.splice(i, 1);
           poly.setLatLngs(latLngs);
           buildMarkers(); // Rebuild everything due to index shift
+          finishEdit();
         });
 
         markers.push(m);
@@ -363,6 +376,7 @@ const LeafletMap = forwardRef(function LeafletMap(
           latLngs.splice(i + 1, 0, mid);
           poly.setLatLngs(latLngs);
           buildMarkers();
+          finishEdit();
         });
         midMarkers.push(mMid);
       }
@@ -374,17 +388,6 @@ const LeafletMap = forwardRef(function LeafletMap(
     }
 
     buildMarkers();
-
-    function finishEdit() {
-      if (!editLayerRef.current) return;
-      const coords = [...latLngs, latLngs[0]].map((ll) => [ll.lng, ll.lat]);
-      const newGeo = {
-        type: 'Feature',
-        geometry: { type: 'Polygon', coordinates: [coords] },
-        properties: {},
-      };
-      onMoveComplete(activeBoundaryId, newGeo);
-    }
 
     function onKeyDown(e) {
       if (e.key === 'Enter') finishEdit();

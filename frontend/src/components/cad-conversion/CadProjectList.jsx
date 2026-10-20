@@ -269,7 +269,7 @@ export default function CadProjectList() {
             <Can I="create" a="project">
               <button 
                 onClick={() => setShowCreateForm(true)}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-xs sm:text-sm uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(0,200,255,0.1)] hover:shadow-[0_0_25px_rgba(0,200,255,0.4)] shrink-0 w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-[#ABD2FA] hover:bg-[#9bc2ea] text-[#18181b] border border-[#ABD2FA] text-xs sm:text-sm uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-sm hover:shadow-md shrink-0 w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>New Project</span>
@@ -466,7 +466,7 @@ export default function CadProjectList() {
                 <Can I="create" a="project">
                   <button 
                     onClick={() => setShowCreateForm(true)}
-                    className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#ABD2FA] text-[#ABD2FA] hover:text-[#0f111a] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300"
+                    className="px-5 py-2.5 sm:px-6 sm:py-2.5 bg-[#ABD2FA] hover:bg-[#9bc2ea] text-[#18181b] border border-[#ABD2FA] text-[10px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all duration-300 shadow-sm hover:shadow-md"
                   >
                     Create Project
                   </button>

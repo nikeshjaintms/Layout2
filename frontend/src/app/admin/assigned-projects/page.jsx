@@ -111,7 +111,7 @@ export default function AdminAssignedProjects() {
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <button 
                       onClick={(e) => handleAdminStatusToggle(e, project)}
-                      className={`text-[10px] font-black px-2 py-1 rounded border flex items-center gap-1 ${project.adminActive && project.clientActive ? 'bg-[#ABD2FA] text-[#ABD2FA] border-[#ABD2FA] hover:bg-[#ABD2FA]' : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'}`}
+                      className={`text-[10px] font-black px-2 py-1 rounded border flex items-center gap-1 ${project.adminActive && project.clientActive ? 'bg-[#ABD2FA] text-[#18181b] border-[#ABD2FA] hover:bg-[#9bc2ea]' : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'}`}
                       title="Toggle Effective Status"
                     >
                       STATUS: {project.adminActive && project.clientActive ? 'ACTIVE' : 'INACTIVE'}

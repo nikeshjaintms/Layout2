@@ -159,7 +159,7 @@ export default function CadConversionStudio({ projectId }) {
         <div className="flex items-center gap-3">
           {/* Selected file name pill — tablet+ */}
           {selectedConversion && (
-            <span className="hidden sm:inline-block text-xs font-bold tracking-wider text-[#ABD2FA] bg-[#ABD2FA] border border-[#ABD2FA] rounded-full px-4 py-1.5 truncate max-w-[220px] shadow-[0_0_10px_rgba(0,200,255,0.1)]">
+            <span className="hidden sm:inline-block text-xs font-bold tracking-wider text-[#18181b] bg-[#ABD2FA] border border-[#ABD2FA] rounded-full px-4 py-1.5 truncate max-w-[220px] shadow-sm">
               {selectedConversion.originalFileName}
             </span>
           )}
