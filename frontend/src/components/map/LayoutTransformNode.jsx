@@ -54,7 +54,10 @@ export default function LayoutTransformNode({
   readOnly = false,
   selectedPlotId,
   onPlotSelect,
-  appearanceSettings
+  appearanceSettings,
+  isAligning = false,
+  onPolygonLoaded,
+  onLayoutClickForAlignment
 }) {
   const [imgSize, setImgSize] = useState(null);
   const [svgUrl, setSvgUrl] = useState(null);
@@ -176,9 +179,16 @@ export default function LayoutTransformNode({
             bounds: g
           });
         }
+
+        if (onPolygonLoaded && data.interactionPolygon && data.interactionPolygon.viewBox) {
+          onPolygonLoaded(layout.id, {
+            imgSize: { w: data.interactionPolygon.viewBox.width, h: data.interactionPolygon.viewBox.height },
+            interactionPolygon: data.interactionPolygon
+          });
+        }
       })
       .catch(console.error);
-  }, [layout.id]); // Run once on mount (or layout change), bust cache aggressively
+  }, [layout.id, onPolygonLoaded]);
 
   // Create Leaflet Custom Layer
   useEffect(() => {
@@ -341,6 +351,7 @@ export default function LayoutTransformNode({
     e.preventDefault();
 
     isTransforming.current = true;
+    map.dragging?.disable();
     const snap = { ...stateRef.current };
     
     // Zoom scale coefficient
@@ -441,6 +452,7 @@ export default function LayoutTransformNode({
       upEv.stopPropagation();
       upEv.preventDefault();
       
+      map.dragging?.enable();
       isTransforming.current = false;
       document.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('pointerup', onPointerUp);
@@ -530,6 +542,54 @@ export default function LayoutTransformNode({
   // Calculate the angle of the normal in degrees for the CSS transform
   const normalAngleDeg = Math.atan2(ny, nx) * 180 / Math.PI;
 
+  const handleAlignmentClick = (e, explicitVertex = null) => {
+    if (!onLayoutClickForAlignment) return;
+    
+    if (explicitVertex) {
+      onLayoutClickForAlignment(layout.id, explicitVertex);
+      return;
+    }
+
+    const rect = map.getContainer().getBoundingClientRect();
+    const clickPoint = L.point(e.clientX - rect.left, e.clientY - rect.top);
+    const clickLp = map.containerPointToLayerPoint(clickPoint);
+
+    const centerLp = map.latLngToLayerPoint([stateRef.current.lat, stateRef.current.lng]);
+    const zoomScale = Math.pow(2, map.getZoom() - 17);
+    const finalScale = (stateRef.current.scale || 1) * zoomScale;
+    const R = stateRef.current.rot || 0;
+
+    const deltaLp = { x: clickLp.x - centerLp.x, y: clickLp.y - centerLp.y };
+    const rad = (-R * Math.PI) / 180;
+    const unrotated = {
+      x: deltaLp.x * Math.cos(rad) - deltaLp.y * Math.sin(rad),
+      y: deltaLp.x * Math.sin(rad) + deltaLp.y * Math.cos(rad)
+    };
+
+    const localX = unrotated.x / finalScale + centroidPx.x;
+    const localY = unrotated.y / finalScale + centroidPx.y;
+
+    // Check if near any vertex (within 25 screen pixels)
+    let bestVertex = null;
+    let minDist = 25;
+    for (const v of verticesPx) {
+      const vLocalDelta = { x: (v.x - centroidPx.x) * finalScale, y: (v.y - centroidPx.y) * finalScale };
+      const rRad = (R * Math.PI) / 180;
+      const vScreenLp = {
+        x: centerLp.x + (vLocalDelta.x * Math.cos(rRad) - vLocalDelta.y * Math.sin(rRad)),
+        y: centerLp.y + (vLocalDelta.x * Math.sin(rRad) + vLocalDelta.y * Math.cos(rRad))
+      };
+      const dist = Math.hypot(clickLp.x - vScreenLp.x, clickLp.y - vScreenLp.y);
+      if (dist < minDist) {
+        minDist = dist;
+        bestVertex = v;
+      }
+    }
+
+    const chosenPoint = bestVertex || { x: localX, y: localY };
+    onLayoutClickForAlignment(layout.id, chosenPoint);
+  };
+
   const content = (
     <div 
       className="cad-viewer-global-styles"
@@ -605,16 +665,62 @@ export default function LayoutTransformNode({
       <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible' }}>
         <polygon 
           points={polygonPoints} 
-          fill="transparent" 
-          stroke={isSelected ? "#3b82f6" : "transparent"} 
-          strokeWidth={isSelected ? 'calc(1.5 / var(--combined-scale))' : 0}
+          fill={isAligning ? "rgba(0, 200, 255, 0.08)" : "transparent"} 
+          stroke={isAligning ? "#00c8ff" : isSelected ? "#3b82f6" : "transparent"} 
+          strokeWidth={isAligning ? 'calc(2 / var(--combined-scale))' : isSelected ? 'calc(1.5 / var(--combined-scale))' : 0}
+          strokeDasharray={isAligning ? `${8 / (stateRef.current.scale || 1)}` : 'none'}
           strokeLinejoin="round"
-          style={{ pointerEvents: readOnly ? 'none' : 'auto', cursor: isSelected ? 'move' : 'pointer', touchAction: isSelected ? 'none' : 'auto' }}
-          onClick={(e) => { if (readOnly) return; e.stopPropagation(); if (!isSelected && onSelect) onSelect(); }}
-          onPointerDown={(e) => { if (readOnly) return; handlePointerDown(e, 'move', null); }}
+          style={{ 
+            pointerEvents: readOnly ? 'none' : 'auto', 
+            cursor: isAligning ? 'crosshair' : isSelected ? 'move' : 'pointer', 
+            touchAction: isAligning ? 'auto' : isSelected ? 'none' : 'auto' 
+          }}
+          onClick={(e) => { 
+            if (readOnly) return; 
+            e.stopPropagation(); 
+            if (isAligning) {
+              handleAlignmentClick(e);
+            } else if (!isSelected && onSelect) {
+              onSelect(); 
+            }
+          }}
+          onPointerDown={(e) => { 
+            if (readOnly || isAligning) return; 
+            handlePointerDown(e, 'move', null); 
+          }}
         />
+
+        {/* If isAligning, render prominent glowing target rings at layout vertices */}
+        {isAligning && verticesPx.map((v, idx) => {
+          const currentZoomScale = (stateRef.current.scale || 1) * Math.pow(2, map.getZoom() - 17);
+          return (
+            <g 
+              key={idx} 
+              style={{ pointerEvents: 'auto', cursor: 'crosshair' }} 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                handleAlignmentClick(e, v); 
+              }}
+            >
+              <circle
+                cx={v.x}
+                cy={v.y}
+                r={14 / currentZoomScale}
+                fill="rgba(0, 200, 255, 0.25)"
+                stroke="#00c8ff"
+                strokeWidth={2 / currentZoomScale}
+              />
+              <circle
+                cx={v.x}
+                cy={v.y}
+                r={4 / currentZoomScale}
+                fill="#ffffff"
+              />
+            </g>
+          );
+        })}
       </svg>
-      {isSelected && !readOnly && (
+      {isSelected && !readOnly && !isAligning && (
         <>
           {/* Centroid Crosshair */}
           <div className="absolute w-2 h-2 rounded-full border border-[#3b82f6] pointer-events-none" 

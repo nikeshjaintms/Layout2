@@ -324,15 +324,33 @@ export default function CadEditorTopBar({
 
         <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
         <div className="flex items-center gap-2 md:mr-1">
-          <span className="hidden md:inline text-xs font-bold uppercase tracking-wider" style={{ color: headerSubText }}>Plot Status</span>
-          <button 
-            type="button"
+          <span 
             onClick={onTogglePlotStatus}
-            className="w-8 h-4 rounded-full relative transition-colors shrink-0 focus:outline-none"
-            style={{ backgroundColor: showPlotStatus ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', boxShadow: showPlotStatus ? `0 0 10px ${btnBg}80` : 'none' }}
+            className="hidden md:inline text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors" 
+            style={{ color: showPlotStatus ? btnBg : headerSubText }}
             title={showPlotStatus ? "Hide plot status overlay" : "Show plot status overlay"}
           >
-            <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${showPlotStatus ? 'left-[18px]' : 'left-0.5'}`} />
+            Plot Status
+          </span>
+          <button 
+            type="button"
+            role="switch"
+            aria-checked={showPlotStatus}
+            onClick={onTogglePlotStatus}
+            className="w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 focus:outline-none flex items-center cursor-pointer"
+            style={{ 
+              backgroundColor: showPlotStatus ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
+              boxShadow: showPlotStatus ? `0 0 10px ${btnBg}80` : 'none' 
+            }}
+            title={showPlotStatus ? "Hide plot status overlay" : "Show plot status overlay"}
+            aria-label="Toggle Plot Status"
+          >
+            <span 
+              className="w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out pointer-events-none block"
+              style={{
+                transform: showPlotStatus ? 'translateX(16px)' : 'translateX(0px)'
+              }}
+            />
           </button>
         </div>
 
@@ -340,16 +358,19 @@ export default function CadEditorTopBar({
         <div className="flex items-center gap-2 md:mr-1">
           <span 
             onClick={onToggleAutoSave}
-            className="hidden md:inline text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors" 
+            className="hidden md:inline text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors flex items-center gap-1.5" 
             style={{ color: autoSave ? btnBg : headerSubText }}
             title={autoSave ? "Auto Save is ON (Changes save automatically)" : "Auto Save is OFF (Click to turn ON)"}
           >
             Auto Save
+            {autoSave && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />}
           </span>
           <button 
             type="button"
+            role="switch"
+            aria-checked={autoSave}
             onClick={onToggleAutoSave}
-            className="w-8 h-4 rounded-full relative transition-colors shrink-0 focus:outline-none"
+            className="w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 focus:outline-none flex items-center cursor-pointer"
             style={{ 
               backgroundColor: autoSave ? btnBg : isDarkNav ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
               boxShadow: autoSave ? `0 0 10px ${btnBg}80` : 'none' 
@@ -357,13 +378,18 @@ export default function CadEditorTopBar({
             title={autoSave ? "Auto Save is ON (Changes save automatically)" : "Auto Save is OFF (Click to turn ON)"}
             aria-label="Toggle Auto Save"
           >
-            <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${autoSave ? 'left-[18px]' : 'left-0.5'}`} />
+            <span 
+              className="w-4 h-4 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out pointer-events-none block"
+              style={{
+                transform: autoSave ? 'translateX(16px)' : 'translateX(0px)'
+              }}
+            />
           </button>
         </div>
 
         {/* Auto Save Status Badge */}
         {autoSave && (
-          <div className="hidden xl:flex items-center text-[11px] font-medium tracking-wide">
+          <div className="flex items-center text-[11px] font-medium tracking-wide">
             {autoSaveStatus === 'saving' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-amber-300 bg-amber-400/10 border border-amber-400/30 animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />

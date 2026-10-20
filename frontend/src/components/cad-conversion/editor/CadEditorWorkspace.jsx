@@ -102,7 +102,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   const [activeLabelStyle, setActiveLabelStyle] = useState(null);
 
   // Auto Save Feature State & Refs
-  const [autoSave, setAutoSave] = useState(false);
+  const [autoSave, setAutoSave] = useState(true);
   const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -110,6 +110,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   const autoSaveStatusTimerRef = React.useRef(null);
   const isSavingRef = React.useRef(false);
   const pendingSaveRef = React.useRef(false);
+  const pendingSvgContentRef = React.useRef(null);
   const initialLoadDoneRef = React.useRef(false);
   const latestStateRef = React.useRef({});
 
@@ -129,12 +130,15 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     hasUnsavedChanges
   };
 
-  // Read saved Auto Save preference from localStorage
+  // Read saved Auto Save preference from localStorage (defaults to ON)
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cad_editor_autosave');
       if (stored !== null) {
         setAutoSave(stored === 'true');
+      } else {
+        setAutoSave(true);
+        localStorage.setItem('cad_editor_autosave', 'true');
       }
     } catch (e) {
       console.warn('Unable to access localStorage for autoSave', e);
@@ -161,6 +165,21 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  // Flush pending auto-save if user switches tabs or minimizes browser
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && latestStateRef.current.autoSave && latestStateRef.current.hasUnsavedChanges) {
+        if (autoSaveDebounceTimerRef.current) clearTimeout(autoSaveDebounceTimerRef.current);
+        const content = pendingSvgContentRef.current || latestStateRef.current.svgContent;
+        if (content && !isSavingRef.current) {
+          performSave(content, true);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const toggleAutoSave = () => {
     setAutoSave(prev => {
       const next = !prev;
@@ -169,14 +188,14 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       } catch (e) {}
 
       // If turning ON and there are pending unsaved changes, trigger save quickly
-      if (next && hasUnsavedChanges && !isSavingRef.current) {
+      if (next && latestStateRef.current.hasUnsavedChanges && !isSavingRef.current) {
         if (autoSaveDebounceTimerRef.current) clearTimeout(autoSaveDebounceTimerRef.current);
         autoSaveDebounceTimerRef.current = setTimeout(() => {
-          const content = latestStateRef.current.svgContent;
+          const content = pendingSvgContentRef.current || latestStateRef.current.svgContent;
           if (content && !isSavingRef.current) {
             performSave(content, true);
           }
-        }, 400);
+        }, 300);
       }
       return next;
     });
@@ -185,6 +204,10 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   const triggerAutoSave = (overrideSvgContent) => {
     if (!initialLoadDoneRef.current) return;
     setHasUnsavedChanges(true);
+
+    if (overrideSvgContent) {
+      pendingSvgContentRef.current = overrideSvgContent;
+    }
 
     if (!latestStateRef.current.autoSave || latestStateRef.current.readOnly) {
       return;
@@ -201,7 +224,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
           pendingSaveRef.current = true;
           return;
         }
-        const contentToSave = overrideSvgContent || state.svgContent;
+        const contentToSave = pendingSvgContentRef.current || state.svgContent;
         if (contentToSave) {
           performSave(contentToSave, true);
         }
@@ -234,8 +257,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       return;
     }
 
-    const targetContent = content || latestStateRef.current.svgContent;
+    const targetContent = content || pendingSvgContentRef.current || latestStateRef.current.svgContent;
     if (!targetContent) return;
+    pendingSvgContentRef.current = null;
 
     try {
       isSavingRef.current = true;
@@ -429,7 +453,8 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     if (autoSaveDebounceTimerRef.current) {
       clearTimeout(autoSaveDebounceTimerRef.current);
     }
-    if (svgContent) performSave(svgContent, false);
+    const targetContent = pendingSvgContentRef.current || svgContent;
+    if (targetContent) performSave(targetContent, false);
   };
 
   // Update an attribute for selected shapes (and local state)
@@ -526,6 +551,9 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
   }, [history, historyIndex]);
 
   useEffect(() => {
+    initialLoadDoneRef.current = false;
+    let isCancelled = false;
+
     async function loadData() {
       if (!conversionId || conversionId === 'undefined') {
         setError('Invalid conversion ID');
@@ -538,18 +566,22 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
         const fetchSvg = readOnly ? getPublicCadConversionSvg : getCadConversionSvg;
 
         const data = await fetchConversion(conversionId);
+        if (isCancelled) return;
         setConversion(data);
         if (data.status === 'FAILED') throw new Error('Conversion failed');
 
         let svgText = await fetchSvg(conversionId);
+        if (isCancelled) return;
         svgText = stripGroupById(svgText, 'composite-plot-labels');
         setSvgContent(svgText);
         setHistory([svgText]);
         setHistoryIndex(0);
       } catch (err) {
-        setError(err.message);
+        if (!isCancelled) setError(err.message);
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     }
     loadData();
@@ -561,6 +593,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
       fetchPlacements(conversionId)
     ])
       .then(([amenities, placements]) => {
+        if (isCancelled) return;
         setMasterAmenities(amenities.filter(a => a.isActive !== false));
         setOriginalAmenities(placements);
         setPlacedAmenities(JSON.parse(JSON.stringify(placements)));
@@ -580,6 +613,7 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
         fetchAppearance(projectId).catch(() => null)
       ])
         .then(([proj, p, s, appearance]) => {
+          if (isCancelled) return;
           setProjectConfig(proj);
           setPlots(p);
           setInitialPlots(JSON.parse(JSON.stringify(p)));
@@ -664,9 +698,12 @@ export default function CadEditorWorkspace({ conversionId, projectId, readOnly =
     }
 
     const initTimer = setTimeout(() => {
-      initialLoadDoneRef.current = true;
-    }, 1200);
-    return () => clearTimeout(initTimer);
+      if (!isCancelled) initialLoadDoneRef.current = true;
+    }, 800);
+    return () => {
+      isCancelled = true;
+      clearTimeout(initTimer);
+    };
   }, [conversionId, projectId]);
 
   const handlePlacedAmenitiesChange = (action) => {

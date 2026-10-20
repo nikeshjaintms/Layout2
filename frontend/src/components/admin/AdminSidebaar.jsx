@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, Menu, X, Shield, Database, ChevronDown, Coffee, Activity, Palette } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Menu, X, Shield, Database, ChevronDown, Coffee, Activity, Palette, Globe } from 'lucide-react';
 import { Can } from '@/lib/ability';
 import { AbilityContext } from '@/lib/ability';
 import { useContext } from 'react';
@@ -57,6 +57,15 @@ export default function AdminSidebaar() {
       icon: Briefcase,
       action: 'sidebar',
       subject: 'project'
+    },
+    {
+      name: 'Public Portal',
+      href: '/projects',
+      activeMatch: '/projects',
+      icon: Globe,
+      target: '_blank',
+      action: 'sidebar',
+      subject: 'dashboard'
     },
     {
       name: 'Masters',
@@ -179,6 +188,7 @@ export default function AdminSidebaar() {
                 <Link
                   key={item.name}
                   href={item.href}
+                  target={item.target}
                   onClick={() => setIsOpen(false)}
                   className={`group flex items-center gap-4 px-4 py-3 text-[14px] font-medium transition-all duration-300 relative ${
                     isActive

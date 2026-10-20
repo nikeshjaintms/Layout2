@@ -9,7 +9,7 @@ import { fetchMySubscription } from '@/redux/slices/subscriptionsSlice';
 import { logoutUser } from '@/redux/slices/authSlice';
 import ChangePasswordModal from '@/components/auth/ChangePasswordModal';
 import Swal from 'sweetalert2';
-import { Search, Plus, Folder, Calendar, FileImage, ArrowRight, X, Trash2, ChevronDown, Shield, LogOut, LayoutDashboard } from 'lucide-react';
+import { Search, Plus, Folder, Calendar, FileImage, ArrowRight, X, Trash2, ChevronDown, Shield, LogOut, LayoutDashboard, Globe, ExternalLink } from 'lucide-react';
 import { Can } from '@/lib/ability';
 
 export default function CadProjectList() {
@@ -187,68 +187,93 @@ export default function CadProjectList() {
           <img src="/techomax.png" alt="Techomax" className="h-10 sm:h-14 w-auto object-contain shrink-0" />
         </div>
         
-        <div className="relative" ref={dropdownRef}>
-          <button 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`flex items-center gap-2 sm:gap-3 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-colors duration-200 ${isMenuOpen ? 'bg-white/5' : 'hover:bg-gray-50'}`}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/projects"
+            target="_blank"
+            className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gray-50 hover:bg-[#ABD2FA]/20 border border-gray-200 hover:border-[#ABD2FA] text-gray-800 text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm"
+            title="Open Public Projects Portal (/projects)"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#00c8ff] to-[#0066FF] flex items-center justify-center shadow-[0_0_10px_rgba(0,200,255,0.3)] shrink-0">
-              <span className="text-gray-900 font-bold text-xs sm:text-sm">
-                {initial}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900 hidden sm:block max-w-[120px] truncate">
-                Hi, {displayName}
-              </span>
-              <ChevronDown 
-                size={16} 
-                className={`text-gray-600 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} 
-              />
-            </div>
-          </button>
+            <Globe className="w-4 h-4 text-[#0066FF]" />
+            <span className="hidden sm:inline">Live Site</span>
+            <span className="font-mono text-[10px] sm:text-[11px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">/projects</span>
+            <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+          </Link>
 
-          {/* Dropdown Menu */}
-          {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white border border-gray-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-200">
-                <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
-                <p className="text-xs text-gray-600 truncate mt-0.5">{displayEmail}</p>
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`flex items-center gap-2 sm:gap-3 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl transition-colors duration-200 ${isMenuOpen ? 'bg-white/5' : 'hover:bg-gray-50'}`}
+            >
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#00c8ff] to-[#0066FF] flex items-center justify-center shadow-[0_0_10px_rgba(0,200,255,0.3)] shrink-0">
+                <span className="text-gray-900 font-bold text-xs sm:text-sm">
+                  {initial}
+                </span>
               </div>
-              
-              <div className="p-2 space-y-1">
-                <button 
-                  className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    setIsPasswordModalOpen(true);
-                  }}
-                >
-                  <Shield size={16} className="text-gray-600" />
-                  Change Password
-                </button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-900 hidden sm:block max-w-[120px] truncate">
+                  Hi, {displayName}
+                </span>
+                <ChevronDown 
+                  size={16} 
+                  className={`text-gray-600 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} 
+                />
+              </div>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white border border-gray-200 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-200">
+                  <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
+                  <p className="text-xs text-gray-600 truncate mt-0.5">{displayEmail}</p>
+                </div>
                 
-                {authUser?.role === 'ADMIN' && (
+                <div className="p-2 space-y-1">
                   <Link 
-                    href="/admin/dashboard"
+                    href="/projects"
+                    target="_blank"
                     className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    <LayoutDashboard size={16} className="text-gray-600" />
-                    Admin Panel
+                    <Globe size={16} className="text-[#0066FF]" />
+                    <span>Public Portal (/projects)</span>
+                    <ExternalLink size={12} className="ml-auto text-gray-400" />
                   </Link>
-                )}
-                
-                <button 
-                  className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-[#ff4d4d] hover:bg-[#ff4d4d]/10 transition-colors"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={16} />
-                  Logout
-                </button>
+
+                  <button 
+                    className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsPasswordModalOpen(true);
+                    }}
+                  >
+                    <Shield size={16} className="text-gray-600" />
+                    Change Password
+                  </button>
+                  
+                  {authUser?.role === 'ADMIN' && (
+                    <Link 
+                      href="/admin/dashboard"
+                      className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <LayoutDashboard size={16} className="text-gray-600" />
+                      Admin Panel
+                    </Link>
+                  )}
+                  
+                  <button 
+                    className="w-full flex items-center gap-3 px-3 py-2 sm:py-2.5 rounded-xl text-sm font-medium text-[#ff4d4d] hover:bg-[#ff4d4d]/10 transition-colors"
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
@@ -392,6 +417,15 @@ export default function CadProjectList() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </Can>
+                      <Link
+                        href={`/projects/${project.id}`}
+                        target="_blank"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-8 h-8 rounded-full bg-blue-50 hover:bg-[#00c8ff] hover:text-gray-900 flex items-center justify-center text-blue-600 transition-all shadow-sm"
+                        title="View Public Page (/projects)"
+                      >
+                        <Globe className="w-4 h-4" />
+                      </Link>
                       <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
                         <ArrowRight className="w-4 h-4 text-[#ABD2FA]" />
                       </div>

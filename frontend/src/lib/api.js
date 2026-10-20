@@ -104,8 +104,13 @@ export async function deleteAdminUser(id) {
 
 // ─── CAD Projects ─────────────────────────────────────────────────────────────
 
-export async function getCadProjects() {
-  return request('/cad-projects');
+export async function getCadProjects(params = {}) {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page);
+  if (params.limit) query.append('limit', params.limit);
+  if (params.search) query.append('search', params.search);
+  const qs = query.toString();
+  return request(`/cad-projects${qs ? `?${qs}` : ''}`);
 }
 
 export async function getPublicProjects() {

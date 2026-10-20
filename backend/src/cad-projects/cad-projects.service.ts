@@ -89,12 +89,24 @@ export class CadProjectsService {
       where: { 
         adminActive: true,
         clientActive: true,
-        owner: {
-          subscription: {
-            status: 'ACTIVE',
-            endDate: { gt: new Date() }
+        OR: [
+          { ownerId: null },
+          {
+            owner: {
+              role: {
+                name: 'ADMIN'
+              }
+            }
+          },
+          {
+            owner: {
+              subscription: {
+                status: 'ACTIVE',
+                endDate: { gt: new Date() }
+              }
+            }
           }
-        }
+        ]
       },
       include: {
         _count: {
@@ -109,8 +121,30 @@ export class CadProjectsService {
   }
 
   async findPublicOne(id: number) {
-    const project = await this.prisma.cadProject.findUnique({
-      where: { id, adminActive: true, clientActive: true },
+    const project = await this.prisma.cadProject.findFirst({
+      where: { 
+        id, 
+        adminActive: true, 
+        clientActive: true,
+        OR: [
+          { ownerId: null },
+          {
+            owner: {
+              role: {
+                name: 'ADMIN'
+              }
+            }
+          },
+          {
+            owner: {
+              subscription: {
+                status: 'ACTIVE',
+                endDate: { gt: new Date() }
+              }
+            }
+          }
+        ]
+      },
       include: {
         conversions: {
           orderBy: { createdAt: 'desc' }

@@ -36,7 +36,8 @@ const LeafletMap = forwardRef(function LeafletMap(
     initialBounds, staticPreview, onLayoutDrop,
     layouts, onLayoutUpdate, plots, statuses, showPlotStatus,
     projectConfig, selectedPlotId, onPlotSelect, appearanceSettings,
-    onMapReady, onLayoutSelect, enableZoomDimming
+    onMapReady, onLayoutSelect, enableZoomDimming,
+    aligningLayout, onCancelAlignment, onLayoutPolygonLoaded
   },
   ref,
 ) {
@@ -68,6 +69,18 @@ const LeafletMap = forwardRef(function LeafletMap(
   const [currentZoom, setCurrentZoom] = useState(null);
   const [baseZoom, setBaseZoom] = useState(null);
   const [portalTargets, setPortalTargets] = useState({});
+
+  // ── 2-Point Reference Alignment State ─────────────────────────────────────────
+  const layoutPolygonsRef = useRef({});
+  const [alignStep, setAlignStep] = useState(1); // 1: pt1Layout, 2: pt1Map, 3: pt2Layout, 4: pt2Map
+  const [alignData, setAlignData] = useState({
+    pt1Layout: null,
+    pt1Map: null,
+    pt2Layout: null,
+    pt2Map: null
+  });
+  const alignMarkersRef = useRef([]);
+  const alignLinesRef = useRef([]);
 
   // ── Expose map methods imperatively ──────────────────────────────────────────
   useImperativeHandle(ref, () => ({
@@ -278,7 +291,7 @@ const LeafletMap = forwardRef(function LeafletMap(
     }
 
     const poly = Lf.polygon(latLngs, {
-      color, weight: 2, fillOpacity: 0.2, fillColor: color, dashArray: '5,4',
+      color, weight: 2, fillOpacity: 0.2, fillColor: color, dashArray: '5,4', interactive: false,
     }).addTo(map);
 
     let markers = [];
@@ -589,7 +602,231 @@ const LeafletMap = forwardRef(function LeafletMap(
     if (rectLayerRef.current) { try { map.removeLayer(rectLayerRef.current); } catch {} rectLayerRef.current = null; }
   }
 
-  // ── Render Layouts ──────────────────────────────────────────────────────────
+  // ── 2-Point Reference Alignment Cleanup ─────────────────────────────────────
+  const cleanupAlignMarkers = useCallback(() => {
+    if (mapRef.current) {
+      alignMarkersRef.current.forEach(m => {
+        try { mapRef.current.removeLayer(m); } catch (e) {}
+      });
+      alignLinesRef.current.forEach(l => {
+        try { mapRef.current.removeLayer(l); } catch (e) {}
+      });
+    }
+    alignMarkersRef.current = [];
+    alignLinesRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    if (!aligningLayout) {
+      setAlignStep(1);
+      setAlignData({ pt1Layout: null, pt1Map: null, pt2Layout: null, pt2Map: null });
+      cleanupAlignMarkers();
+    }
+  }, [aligningLayout, cleanupAlignMarkers]);
+
+  // Cancel on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && aligningLayout) {
+        cleanupAlignMarkers();
+        if (onCancelAlignment) onCancelAlignment();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [aligningLayout, onCancelAlignment, cleanupAlignMarkers]);
+
+  // Click on layout point during alignment
+  const handleLayoutAlignmentClick = useCallback((layoutId, localPt) => {
+    if (!aligningLayout || aligningLayout.id !== layoutId || !mapRef.current) return;
+    const map = mapRef.current;
+    const Lf = L.current;
+    if (!Lf) return;
+
+    const draft = draftTransforms[layoutId] || {};
+    const lat = draft.mapLatitude ?? aligningLayout.mapLatitude;
+    const lng = draft.mapLongitude ?? aligningLayout.mapLongitude;
+    const scale = draft.mapScale ?? aligningLayout.mapScale ?? 1;
+    const rot = draft.mapRotation ?? aligningLayout.mapRotation ?? 0;
+
+    const polyInfo = layoutPolygonsRef.current[layoutId];
+    if (!polyInfo) return;
+    const { imgSize, interactionPolygon } = polyInfo;
+    const centroidPx = {
+      x: interactionPolygon.centroid[0] * imgSize.w,
+      y: interactionPolygon.centroid[1] * imgSize.h
+    };
+
+    const zoomScale = Math.pow(2, map.getZoom() - 17);
+    const finalScale = scale * zoomScale;
+    const centerLp = map.latLngToLayerPoint([lat, lng]);
+    const deltaLocal = { x: (localPt.x - centroidPx.x) * finalScale, y: (localPt.y - centroidPx.y) * finalScale };
+    const rRad = (rot * Math.PI) / 180;
+    const screenLp = {
+      x: centerLp.x + (deltaLocal.x * Math.cos(rRad) - deltaLocal.y * Math.sin(rRad)),
+      y: centerLp.y + (deltaLocal.x * Math.sin(rRad) + deltaLocal.y * Math.cos(rRad))
+    };
+    const ptLatLng = map.layerPointToLatLng(Lf.point(screenLp.x, screenLp.y));
+
+    if (alignStep === 1) {
+      const icon = Lf.divIcon({
+        className: 'align-marker-pt1',
+        html: `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:#00c8ff;color:#0f111a;font-weight:bold;font-size:11px;border-radius:50%;box-shadow:0 0 12px #00c8ff;border:2px solid #fff;">1</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+      const m = Lf.marker(ptLatLng, { icon, zIndexOffset: 3000 }).addTo(map);
+      alignMarkersRef.current.push(m);
+
+      setAlignData(prev => ({ ...prev, pt1Layout: { local: localPt, latlng: ptLatLng } }));
+      setAlignStep(2);
+    } else if (alignStep === 3) {
+      const icon = Lf.divIcon({
+        className: 'align-marker-pt2',
+        html: `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:#00c8ff;color:#0f111a;font-weight:bold;font-size:11px;border-radius:50%;box-shadow:0 0 12px #00c8ff;border:2px solid #fff;">2</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+      const m = Lf.marker(ptLatLng, { icon, zIndexOffset: 3000 }).addTo(map);
+      alignMarkersRef.current.push(m);
+
+      setAlignData(prev => ({ ...prev, pt2Layout: { local: localPt, latlng: ptLatLng } }));
+      setAlignStep(4);
+    }
+  }, [aligningLayout, alignStep, draftTransforms]);
+
+  // Click on map target during alignment
+  useEffect(() => {
+    if (!aligningLayout || !mapRef.current) return;
+    const map = mapRef.current;
+    const Lf = L.current;
+    if (!Lf) return;
+
+    function handleMapClick(e) {
+      if (alignStep !== 2 && alignStep !== 4) return;
+      let targetLatLng = e.latlng;
+
+      // Snap to nearest boundary vertex if within 25 screen pixels
+      const boundaryCoords = boundaries?.[0]?.geometry?.geometry?.coordinates?.[0] || 
+                            boundaries?.[0]?.geometry?.coordinates?.[0];
+      if (boundaryCoords && boundaryCoords.length > 0) {
+        const clickLp = map.latLngToLayerPoint(e.latlng);
+        let minDist = 25;
+        for (const [lng, lat] of boundaryCoords) {
+          const vLp = map.latLngToLayerPoint([lat, lng]);
+          const dist = Math.hypot(clickLp.x - vLp.x, clickLp.y - vLp.y);
+          if (dist < minDist) {
+            minDist = dist;
+            targetLatLng = Lf.latLng(lat, lng);
+          }
+        }
+      }
+
+      if (alignStep === 2) {
+        const icon = Lf.divIcon({
+          className: 'align-target-1',
+          html: `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:#10b981;color:#fff;font-weight:bold;font-size:11px;border-radius:50%;box-shadow:0 0 12px #10b981;border:2px solid #fff;">1</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+        const m = Lf.marker(targetLatLng, { icon, zIndexOffset: 3000 }).addTo(map);
+        alignMarkersRef.current.push(m);
+
+        if (alignData.pt1Layout?.latlng) {
+          const line = Lf.polyline([alignData.pt1Layout.latlng, targetLatLng], {
+            color: '#10b981',
+            weight: 2,
+            dashArray: '5,5'
+          }).addTo(map);
+          alignLinesRef.current.push(line);
+        }
+
+        setAlignData(prev => ({ ...prev, pt1Map: targetLatLng }));
+        setAlignStep(3);
+      } else if (alignStep === 4) {
+        const icon = Lf.divIcon({
+          className: 'align-target-2',
+          html: `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:#10b981;color:#fff;font-weight:bold;font-size:11px;border-radius:50%;box-shadow:0 0 12px #10b981;border:2px solid #fff;">2</div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+        const m = Lf.marker(targetLatLng, { icon, zIndexOffset: 3000 }).addTo(map);
+        alignMarkersRef.current.push(m);
+
+        if (alignData.pt2Layout?.latlng) {
+          const line = Lf.polyline([alignData.pt2Layout.latlng, targetLatLng], {
+            color: '#10b981',
+            weight: 2,
+            dashArray: '5,5'
+          }).addTo(map);
+          alignLinesRef.current.push(line);
+        }
+
+        const polyInfo = layoutPolygonsRef.current[aligningLayout.id];
+        if (polyInfo && alignData.pt1Layout && alignData.pt1Map && alignData.pt2Layout) {
+          try {
+            const alignmentResult = calculate2PointAlignment({
+              map,
+              imgSize: polyInfo.imgSize,
+              interactionPolygon: polyInfo.interactionPolygon,
+              pt1Local: alignData.pt1Layout.local,
+              pt1Map: alignData.pt1Map,
+              pt2Local: alignData.pt2Layout.local,
+              pt2Map: targetLatLng
+            });
+
+            setDraftTransforms(prev => ({
+              ...prev,
+              [aligningLayout.id]: {
+                ...(prev[aligningLayout.id] || {}),
+                ...alignmentResult,
+                _dirty: true
+              }
+            }));
+
+            if (onLayoutUpdate) {
+              onLayoutUpdate(aligningLayout.id, alignmentResult);
+            }
+
+            import('sweetalert2').then(SwalMod => {
+              const Swal = SwalMod.default;
+              Swal.fire({
+                title: 'Layout Aligned!',
+                text: 'CAD layout has been mathematically aligned to the points.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false,
+                background: '#18181b',
+                color: '#fff'
+              });
+            });
+          } catch (err) {
+            console.error('Alignment calculation error:', err);
+            import('sweetalert2').then(SwalMod => {
+              const Swal = SwalMod.default;
+              Swal.fire({
+                title: 'Alignment Failed',
+                text: err.message || 'Points could not produce a valid transform. Please try again.',
+                icon: 'error',
+                background: '#18181b',
+                color: '#fff'
+              });
+            });
+          }
+        }
+
+        setTimeout(() => {
+          cleanupAlignMarkers();
+          if (onCancelAlignment) onCancelAlignment();
+        }, 1200);
+      }
+    }
+
+    map.on('click', handleMapClick);
+    return () => {
+      map.off('click', handleMapClick);
+    };
+  }, [aligningLayout, alignStep, alignData, boundaries, onLayoutUpdate, onCancelAlignment, cleanupAlignMarkers]);
 
 
 
@@ -729,6 +966,42 @@ const LeafletMap = forwardRef(function LeafletMap(
         </div>
       )}
 
+      {/* 2-Point Reference Alignment Floating Guide Banner */}
+      {aligningLayout && (
+        <div className="absolute top-16 sm:top-5 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-24px)] max-w-xl pointer-events-auto">
+          <div className="bg-[#0f111a]/95 backdrop-blur-md border border-[#00c8ff]/50 rounded-xl shadow-[0_0_25px_rgba(0,200,255,0.25)] p-3 text-white">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#00c8ff]/20 text-[#00c8ff] flex items-center justify-center font-bold text-sm shrink-0 border border-[#00c8ff]/50 shadow-[0_0_10px_rgba(0,200,255,0.3)]">
+                  {alignStep}/4
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold text-[#00c8ff] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#00c8ff] animate-ping inline-block" />
+                    2-Point Reference Alignment
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium text-slate-100 mt-0.5">
+                    {alignStep === 1 && "Step 1: Click Reference Point 1 on the CAD Layout (e.g. corner)"}
+                    {alignStep === 2 && "Step 2: Click Target Point 1 on the Map or Boundary to match"}
+                    {alignStep === 3 && "Step 3: Click Reference Point 2 on the CAD Layout (e.g. second corner)"}
+                    {alignStep === 4 && "Step 4: Click Target Point 2 on the Map or Boundary to complete"}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  cleanupAlignMarkers();
+                  if (onCancelAlignment) onCancelAlignment();
+                }}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-xs font-bold rounded-lg transition-colors text-slate-300 hover:text-white shrink-0"
+              >
+                Cancel (Esc)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Direct Render of LayoutTransformNode as a Leaflet Layer */}
       {leafletLoaded && mapRef.current && layouts?.map(layout => {
         if (!layout.mapLatitude || !layout.mapLongitude) return null;
@@ -757,6 +1030,12 @@ const LeafletMap = forwardRef(function LeafletMap(
             selectedPlotId={selectedPlotId}
             onPlotSelect={onPlotSelect}
             appearanceSettings={appearanceSettings}
+            isAligning={aligningLayout?.id === layout.id}
+            onPolygonLoaded={(layoutId, polyData) => {
+              layoutPolygonsRef.current[layoutId] = polyData;
+              if (onLayoutPolygonLoaded) onLayoutPolygonLoaded(layoutId, polyData);
+            }}
+            onLayoutClickForAlignment={handleLayoutAlignmentClick}
             onTransformChange={(newDraft) => {
               setDraftTransforms(prev => ({
                 ...prev,
@@ -776,6 +1055,94 @@ const LeafletMap = forwardRef(function LeafletMap(
 });
 
 export default LeafletMap;
+
+// ─── 2-Point Reference Alignment Math (Helmert 2D conformal transformation) ─────
+function calculate2PointAlignment({
+  map,
+  imgSize,
+  interactionPolygon,
+  pt1Local,
+  pt1Map,
+  pt2Local,
+  pt2Map
+}) {
+  const centroidPx = {
+    x: interactionPolygon.centroid[0] * imgSize.w,
+    y: interactionPolygon.centroid[1] * imgSize.h
+  };
+
+  const v1Local = { x: pt1Local.x - centroidPx.x, y: pt1Local.y - centroidPx.y };
+  const v2Local = { x: pt2Local.x - centroidPx.x, y: pt2Local.y - centroidPx.y };
+
+  const dLocalX = pt2Local.x - pt1Local.x;
+  const dLocalY = pt2Local.y - pt1Local.y;
+  const distLocal = Math.hypot(dLocalX, dLocalY);
+  if (distLocal < 2) {
+    throw new Error("Reference points on the layout are too close together. Pick two points that are further apart.");
+  }
+  const angleLocal = Math.atan2(dLocalY, dLocalX) * (180 / Math.PI);
+
+  const lp1 = map.latLngToLayerPoint([pt1Map.lat, pt1Map.lng]);
+  const lp2 = map.latLngToLayerPoint([pt2Map.lat, pt2Map.lng]);
+
+  const dMapX = lp2.x - lp1.x;
+  const dMapY = lp2.y - lp1.y;
+  const distMap = Math.hypot(dMapX, dMapY);
+  if (distMap < 2) {
+    throw new Error("Target points on the map are too close together. Pick two points that are further apart.");
+  }
+  const angleMap = Math.atan2(dMapY, dMapX) * (180 / Math.PI);
+
+  // 1. Rotation difference
+  let newRotation = angleMap - angleLocal;
+  while (newRotation > 180) newRotation -= 360;
+  while (newRotation <= -180) newRotation += 360;
+
+  // 2. Scale
+  const zoom = map.getZoom();
+  const zoomScale = Math.pow(2, zoom - 17);
+  const finalScale = distMap / distLocal;
+  let newScale = finalScale / zoomScale;
+  if (newScale < 0.0001) newScale = 0.0001;
+
+  // 3. Translation (Centroid)
+  const midLocal = {
+    x: (v1Local.x + v2Local.x) / 2,
+    y: (v1Local.y + v2Local.y) / 2
+  };
+  const rad = (newRotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const scaledMidLocal = {
+    x: midLocal.x * finalScale,
+    y: midLocal.y * finalScale
+  };
+
+  const rotatedMidLayer = {
+    x: scaledMidLocal.x * cos - scaledMidLocal.y * sin,
+    y: scaledMidLocal.x * sin + scaledMidLocal.y * cos
+  };
+
+  const midMapLp = {
+    x: (lp1.x + lp2.x) / 2,
+    y: (lp1.y + lp2.y) / 2
+  };
+
+  const centroidLp = {
+    x: midMapLp.x - rotatedMidLayer.x,
+    y: midMapLp.y - rotatedMidLayer.y
+  };
+
+  const centroidLatLng = map.layerPointToLatLng(L.current.point(centroidLp.x, centroidLp.y));
+
+  return {
+    mapLatitude: centroidLatLng.lat,
+    mapLongitude: centroidLatLng.lng,
+    mapRotation: parseFloat(newRotation.toFixed(2)),
+    mapScale: parseFloat(newScale.toFixed(6))
+  };
+}
 
 // ─── Tile layer factory ────────────────────────────────────────────────────────
 function buildTileLayers(Lf, type) {

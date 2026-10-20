@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProjects, updateProjectStatus } from '@/redux/slices/projectsSlice';
 import AuthGuard from '@/components/auth/AuthGuard';
-import { Folder, User, Mail, Search, X, Loader2, ChevronDown, CheckCircle2, XCircle } from 'lucide-react';
+import { Folder, User, Mail, Search, X, Loader2, ChevronDown, CheckCircle2, XCircle, Globe, ExternalLink } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function AdminAssignedProjects() {
@@ -129,6 +129,16 @@ export default function AdminAssignedProjects() {
                     )}
                   </div>
                 </div>
+                <a
+                  href={`/projects/${project.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-[#ABD2FA]/20 border border-gray-200 hover:border-[#ABD2FA] text-gray-500 hover:text-[#0066FF] flex items-center justify-center shrink-0 transition-all shadow-sm"
+                  title="View on Public Site (/projects)"
+                >
+                  <Globe size={16} />
+                </a>
               </div>
               
               <div className="flex justify-between items-start pt-6 border-t border-gray-200">

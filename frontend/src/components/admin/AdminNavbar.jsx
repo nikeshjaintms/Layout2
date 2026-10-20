@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Shield, LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronDown, Shield, LogOut, Globe, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -37,7 +38,19 @@ export default function AdminNavbar() {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6 shrink-0 sticky top-0 z-40">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-6 shrink-0 sticky top-0 z-40 gap-3">
+      <Link
+        href="/projects"
+        target="_blank"
+        className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-[#ABD2FA]/20 border border-gray-200 hover:border-[#ABD2FA] text-gray-700 text-xs font-semibold transition-all shadow-sm"
+        title="Open Public Projects Portal (/projects)"
+      >
+        <Globe size={14} className="text-[#0066FF]" />
+        <span>Live Site</span>
+        <span className="font-mono text-[10px] text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">/projects</span>
+        <ExternalLink size={12} className="text-gray-400" />
+      </Link>
+
       <div className="relative" ref={dropdownRef}>
         <button 
           onClick={() => setIsOpen(!isOpen)}
@@ -69,6 +82,17 @@ export default function AdminNavbar() {
             
             {/* Menu Actions */}
             <div className="p-2 space-y-1">
+              <Link 
+                href="/projects"
+                target="_blank"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                <Globe size={16} className="text-[#0066FF]" />
+                <span>Public Portal (/projects)</span>
+                <ExternalLink size={12} className="ml-auto text-gray-400" />
+              </Link>
+
               <button 
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors"
                 onClick={() => {

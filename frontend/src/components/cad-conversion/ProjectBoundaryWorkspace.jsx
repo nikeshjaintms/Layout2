@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { MapPin, ArrowLeft, Save, Trash2, Undo, Redo, Maximize, MousePointer2, Hexagon, Loader2, Edit2, Layers, Eye, EyeOff, ChevronLeft, ChevronRight, X, FileJson } from 'lucide-react';
+import { MapPin, ArrowLeft, Save, Trash2, Undo, Redo, Maximize, MousePointer2, Hexagon, Loader2, Edit2, Layers, Eye, EyeOff, ChevronLeft, ChevronRight, X, FileJson, Crosshair } from 'lucide-react';
 import area from '@turf/area';
 import { polygon as turfPolygon } from '@turf/helpers';
 import { getProjectBoundaries, createProjectBoundary, updateProjectBoundary, deleteProjectBoundary, getCadConversions, updateCadConversion, getProjectPlots, getCadProject } from '@/lib/api';
@@ -49,6 +49,89 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
   const [layouts, setLayouts] = useState([]);
   const [plots, setPlots] = useState([]);
   const [projectConfig, setProjectConfig] = useState(null);
+  const [aligningLayout, setAligningLayout] = useState(null);
+  const layoutPolygonsRef = useRef({});
+
+  const handleLayoutDrop = useCallback(async (layout, latlng) => {
+    try {
+      const updates = { mapLatitude: latlng.lat, mapLongitude: latlng.lng };
+      await updateCadConversion(layout.id, updates);
+      setLayouts(prev => prev.map(l => l.id === layout.id ? { ...l, ...updates } : l));
+    } catch (err) {
+      console.error("Failed to place layout", err);
+    }
+  }, []);
+
+  const handleLayoutUpdate = useCallback(async (id, updates) => {
+    try {
+      setLayouts(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+      await updateCadConversion(id, updates);
+    } catch (err) {
+      console.error("Failed to update layout placement", err);
+    }
+  }, []);
+
+  const handleFitToBoundary = useCallback((layout) => {
+    if (!boundary || !boundary.geoJson) {
+      Swal.fire({
+        title: 'No Boundary Found',
+        text: 'Please draw or save a boundary polygon first.',
+        icon: 'info',
+        background: '#18181b',
+        color: '#fff'
+      });
+      return;
+    }
+
+    const coords = boundary.geoJson.geometry?.coordinates?.[0] || boundary.geoJson.coordinates?.[0];
+    if (!coords || coords.length < 3) return;
+
+    let lats = coords.map(c => c[1]);
+    let lngs = coords.map(c => c[0]);
+    const latMin = Math.min(...lats);
+    const latMax = Math.max(...lats);
+    const lngMin = Math.min(...lngs);
+    const lngMax = Math.max(...lngs);
+
+    const centerLat = (latMin + latMax) / 2;
+    const centerLng = (lngMin + lngMax) / 2;
+
+    const map = leafletMapInstance.current;
+    if (!map) return;
+
+    const sw = map.latLngToLayerPoint([latMin, lngMin]);
+    const ne = map.latLngToLayerPoint([latMax, lngMax]);
+    const boundWidthPx = Math.abs(ne.x - sw.x);
+    const boundHeightPx = Math.abs(ne.y - sw.y);
+
+    const polyInfo = layoutPolygonsRef.current[layout.id];
+    const imgW = polyInfo?.imgSize?.w || 1000;
+    const imgH = polyInfo?.imgSize?.h || 1000;
+
+    const scaleX = (boundWidthPx * 0.85) / imgW;
+    const scaleY = (boundHeightPx * 0.85) / imgH;
+    const targetScale = Math.min(scaleX, scaleY);
+    const zoomScale = Math.pow(2, map.getZoom() - 17);
+    const newScale = Math.max(0.001, targetScale / zoomScale);
+
+    const updates = {
+      mapLatitude: centerLat,
+      mapLongitude: centerLng,
+      mapScale: parseFloat(newScale.toFixed(6))
+    };
+
+    handleLayoutUpdate(layout.id, updates);
+    map.setView([centerLat, centerLng], map.getZoom());
+    Swal.fire({
+      title: 'Fitted to Boundary!',
+      text: 'Layout centered and scaled inside boundary points.',
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false,
+      background: '#18181b',
+      color: '#fff'
+    });
+  }, [boundary, handleLayoutUpdate]);
   useEffect(() => {
     if (projectId) {
       // Fetch boundaries and conversions independently so one failure
@@ -134,24 +217,6 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
   const onMoveComplete = (id, geoGeoJson) => {
     updateBoundaryGeometry(geoGeoJson);
   };
-  const handleLayoutDrop = useCallback(async (layout, latlng) => {
-    try {
-      const updates = { mapLatitude: latlng.lat, mapLongitude: latlng.lng };
-      await updateCadConversion(layout.id, updates);
-      setLayouts(prev => prev.map(l => l.id === layout.id ? { ...l, ...updates } : l));
-    } catch (err) {
-      console.error("Failed to place layout", err);
-    }
-  }, []);
-
-  const handleLayoutUpdate = useCallback(async (id, updates) => {
-    try {
-      setLayouts(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
-      await updateCadConversion(id, updates);
-    } catch (err) {
-      console.error("Failed to update layout placement", err);
-    }
-  }, []);
 
   const handleRemoveLayout = async (id) => {
     const result = await Swal.fire({
@@ -434,6 +499,25 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
           >
             <Redo size={14} className="sm:w-4 sm:h-4" />
           </button>
+
+          {layouts.some(l => l.mapLatitude && l.mapLongitude) && (
+            <>
+              <div className="w-px h-3 sm:h-4 bg-white/10 mx-0.5 sm:mx-1" />
+              <button
+                className={`p-1 sm:p-1.5 rounded-md transition-colors shrink-0 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${
+                  aligningLayout ? 'bg-[#00c8ff] text-[#0f111a]' : 'text-gray-600 hover:text-[#00c8ff] hover:bg-gray-100'
+                }`}
+                onClick={() => {
+                  const placed = layouts.find(l => l.mapLatitude && l.mapLongitude);
+                  if (placed) setAligningLayout(aligningLayout ? null : placed);
+                }}
+                title="Set layout based on points (2-Point Alignment)"
+              >
+                <Crosshair size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Set by Points</span>
+              </button>
+            </>
+          )}
           <div className="w-px h-3 sm:h-4 bg-white/10 mx-0.5 sm:mx-1" />
           <button
             className="p-1 sm:p-1.5 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
@@ -528,12 +612,30 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
                     {layout.mapLatitude ? (
                       <>
                         <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider block">Placed on map</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleRemoveLayout(layout.id); }}
-                          className="text-[10px] text-gray-600 hover:text-red-400 uppercase font-bold tracking-wider transition-colors"
-                        >
-                          Remove
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setAligningLayout(layout); setSidebarOpen(false); }}
+                            className="text-[10px] text-[#00c8ff] hover:underline uppercase font-bold tracking-wider transition-colors flex items-center gap-0.5"
+                            title="Set layout by 2 reference points"
+                          >
+                            <Crosshair size={11} />
+                            Align
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleFitToBoundary(layout); }}
+                            className="text-[10px] text-emerald-400 hover:underline uppercase font-bold tracking-wider transition-colors flex items-center gap-0.5"
+                            title="Auto-fit layout inside boundary points"
+                          >
+                            <Maximize size={11} />
+                            Fit
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRemoveLayout(layout.id); }}
+                            className="text-[10px] text-gray-400 hover:text-red-400 uppercase font-bold tracking-wider transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <span className="text-[10px] text-gray-600 uppercase font-bold tracking-wider block">Not placed</span>
@@ -656,6 +758,9 @@ export default function ProjectBoundaryWorkspace({ projectId }) {
               onLayoutUpdate={handleLayoutUpdate}
               onLayoutSelect={setSelectedLayoutId}
               onMapReady={(map) => { leafletMapInstance.current = map; }}
+              aligningLayout={aligningLayout}
+              onCancelAlignment={() => setAligningLayout(null)}
+              onLayoutPolygonLoaded={(id, data) => { layoutPolygonsRef.current[id] = data; }}
               className="w-full h-full"
             />
           ) : (
