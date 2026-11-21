@@ -1,13 +1,23 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError, initializeAuth } from '@/redux/slices/authSlice';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginFormContent />
+    </Suspense>
+  );
+}
+
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const dispatch = useDispatch();
   const { status, error, user } = useSelector((state) => state.auth);
 
@@ -20,7 +30,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (status === 'authenticated' && user) {
       if (user.role === 'ADMIN') {
-        router.push('/admin/dashboard');
+        router.push(redirectParam || '/admin/dashboard');
       } else {
         const isSubActive = Boolean(
           user.isSubscriptionActive ||
@@ -29,13 +39,13 @@ export default function LoginPage() {
             new Date(user.subscription.endDate).getTime() > Date.now())
         );
         if (isSubActive) {
-          router.push('/cad-conversion');
+          router.push(redirectParam || '/cad-conversion');
         } else {
           router.push('/subscription');
         }
       }
     }
-  }, [status, user, router]);
+  }, [status, user, router, redirectParam]);
 
   useEffect(() => {
     // Only dispatch on mount if we haven't checked auth yet

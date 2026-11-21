@@ -2,8 +2,10 @@ export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export async function authFetch(path, options = {}) {
   const isFormData = typeof window !== 'undefined' && options.body instanceof FormData;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
   const headers = {
     ...(!isFormData && { 'Content-Type': 'application/json' }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 

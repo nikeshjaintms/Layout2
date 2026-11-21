@@ -8,7 +8,16 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowedPatterns = [
+        /^http:\/\/localhost(:[0-9]+)?$/,
+        /^http:\/\/127\.0\.0\.1(:[0-9]+)?$/,
+        /\.delawalagroup\.com$/,
+      ];
+      const isAllowed = allowedPatterns.some((pattern) => pattern.test(origin));
+      return callback(null, isAllowed);
+    },
     credentials: true,
     exposedHeaders: ['Content-Disposition', 'Content-Type'],
   });

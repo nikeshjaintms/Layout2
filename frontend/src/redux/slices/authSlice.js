@@ -52,6 +52,10 @@ const authSlice = createSlice({
       state.user = null;
       state.status = 'unauthenticated';
       state.error = null;
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
     },
     clearError: (state) => {
       state.error = null;
@@ -67,6 +71,11 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.status = 'authenticated';
         state.user = action.payload.user;
+        if (typeof window !== 'undefined' && action.payload.access_token) {
+          localStorage.setItem('access_token', action.payload.access_token);
+          const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `access_token=${action.payload.access_token}; path=/; max-age=604800; SameSite=Lax${secure}`;
+        }
       })
       .addCase(login.rejected, (state, action) => {
         state.status = 'unauthenticated';
@@ -79,6 +88,11 @@ const authSlice = createSlice({
       .addCase(initializeAuth.fulfilled, (state, action) => {
         state.status = 'authenticated';
         state.user = action.payload.user;
+        if (typeof window !== 'undefined' && action.payload.access_token) {
+          localStorage.setItem('access_token', action.payload.access_token);
+          const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `access_token=${action.payload.access_token}; path=/; max-age=604800; SameSite=Lax${secure}`;
+        }
       })
       .addCase(initializeAuth.rejected, (state) => {
         state.status = 'unauthenticated';

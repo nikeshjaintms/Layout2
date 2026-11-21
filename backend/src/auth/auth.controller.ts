@@ -12,25 +12,28 @@ export class AuthController {
   async signIn(@Body() signInDto: Record<string, any>, @Res({ passthrough: true }) res: Response) {
     const { access_token, user } = await this.authService.login(signInDto.email, signInDto.password);
     
-    // Set HttpOnly cookie
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
     res.cookie('access_token', access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' && !cookieDomain ? 'none' : 'lax',
+      domain: cookieDomain,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return { user };
+    return { user, access_token };
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
+    const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
     res.clearCookie('access_token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' && !cookieDomain ? 'none' : 'lax',
+      domain: cookieDomain,
       path: '/',
     });
     return { success: true };
@@ -48,15 +51,17 @@ export class AuthController {
     };
     const access_token = this.authService.generateToken(tokenPayload);
     if (access_token) {
+      const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
       res.cookie('access_token', access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' && !cookieDomain ? 'none' : 'lax',
+        domain: cookieDomain,
         path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
     }
-    return { user: userProfile };
+    return { user: userProfile, access_token };
   }
 
   @UseGuards(JwtAuthGuard)
