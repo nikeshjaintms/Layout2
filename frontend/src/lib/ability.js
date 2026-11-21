@@ -3,6 +3,10 @@ import { createContext, useContext } from 'react';
 
 export const buildAbilityFor = (permissions, role) => {
   return defineAbility((can) => {
+    if (role === 'ADMIN') {
+      can('manage', 'all');
+      return;
+    }
     if (!permissions || !Array.isArray(permissions)) return;
     
     permissions.forEach((perm) => {

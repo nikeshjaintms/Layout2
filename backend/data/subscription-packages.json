@@ -1,0 +1,67 @@
+[
+  {
+    "id": 1,
+    "name": "Starter Plan",
+    "slug": "starter",
+    "description": "Essential tools for individual builders and basic land layout planning.",
+    "price": 4999,
+    "durationDays": 30,
+    "durationType": "MONTHS",
+    "durationValue": 1,
+    "features": [
+      "Up to 5 CAD Layout Projects",
+      "DXF & DWG Vector Conversion",
+      "Interactive Plot Mapping",
+      "Public Project Link Sharing",
+      "Standard Email Support"
+    ],
+    "isPopular": false,
+    "isActive": true,
+    "createdAt": "2026-11-21T07:10:42.393Z",
+    "updatedAt": "2026-11-21T07:10:42.393Z"
+  },
+  {
+    "id": 2,
+    "name": "Professional Plan",
+    "slug": "professional",
+    "description": "Complete CAD and land layout mapping suite for estate brokers and developers.",
+    "price": 39999,
+    "durationDays": 365,
+    "durationType": "YEARS",
+    "durationValue": 1,
+    "features": [
+      "Unlimited CAD Layout Projects",
+      "High-Precision Boundary & Plot Snapping",
+      "Amenity Placement & Custom Icons",
+      "Plot Status Management (Available/Sold/Booked)",
+      "High-Resolution PDF & Print Export",
+      "Priority Phone & WhatsApp Support"
+    ],
+    "isPopular": true,
+    "isActive": true,
+    "createdAt": "2026-11-21T07:10:42.394Z",
+    "updatedAt": "2026-11-21T07:10:42.394Z"
+  },
+  {
+    "id": 3,
+    "name": "Enterprise Plan",
+    "slug": "enterprise",
+    "description": "Advanced capabilities for real estate firms requiring multi-seat access and custom workflows.",
+    "price": 89999,
+    "durationDays": 730,
+    "durationType": "YEARS",
+    "durationValue": 2,
+    "features": [
+      "All Professional Features Included",
+      "Multi-User Team Sub-Accounts",
+      "Custom AutoCAD DWG Layer Presets",
+      "Custom Branding & White-Labeling",
+      "Dedicated Technical Account Manager",
+      "24/7 Priority Support SLA"
+    ],
+    "isPopular": false,
+    "isActive": true,
+    "createdAt": "2026-11-21T07:10:42.394Z",
+    "updatedAt": "2026-11-21T07:10:42.394Z"
+  }
+]

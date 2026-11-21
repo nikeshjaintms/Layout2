@@ -164,6 +164,7 @@ const projectsSlice = createSlice({
       })
       .addCase(fetchPublicProjects.rejected, (state, action) => {
         state.loading = false;
+        state.items = [];
         state.error = action.payload;
       })
 

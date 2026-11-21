@@ -21,6 +21,9 @@ export class CadProjectsService {
   }
 
   async create(data: { name: string }, user: any) {
+    if (user.role === 'CLIENT' && !user.isSubscriptionActive) {
+      throw new ForbiddenException('An active subscription is required to create projects. Please purchase or renew your subscription.');
+    }
     const ownerId = user.role === 'CLIENT' ? user.id : null; // ADMINs can leave it null or we can extend to let them choose
     return this.prisma.cadProject.create({
       data: { 
@@ -42,6 +45,9 @@ export class CadProjectsService {
   }
 
   async findAll(page: number = 1, limit: number = 10, search?: string, user?: any) {
+    if (user && user.role === 'CLIENT' && !user.isSubscriptionActive) {
+      throw new ForbiddenException('An active subscription is required to access projects. Please purchase or renew your subscription.');
+    }
     const skip = (page - 1) * limit;
     
     const where: any = search ? {
@@ -85,7 +91,7 @@ export class CadProjectsService {
   }
 
   async findPublic() {
-    return this.prisma.cadProject.findMany({
+    const projects = await this.prisma.cadProject.findMany({
       where: { 
         adminActive: true,
         clientActive: true,
@@ -118,6 +124,12 @@ export class CadProjectsService {
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    if (!projects || projects.length === 0) {
+      throw new NotFoundException('No active projects found');
+    }
+
+    return projects;
   }
 
   async findPublicOne(id: number) {
@@ -151,7 +163,7 @@ export class CadProjectsService {
         }
       }
     });
-    if (!project) throw new NotFoundException('Project not found');
+    if (!project) throw new NotFoundException(`Project with ID ${id} not found or is currently inactive`);
     return project;
   }
 

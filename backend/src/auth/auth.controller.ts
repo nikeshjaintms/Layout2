@@ -38,8 +38,24 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getProfile(@Req() req: any) {
+  async getProfile(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     const userProfile = await this.authService.getProfile(req.user.id);
+    const tokenPayload = {
+      email: userProfile.email,
+      sub: userProfile.id,
+      role: userProfile.role,
+      isSubscriptionActive: userProfile.isSubscriptionActive,
+    };
+    const access_token = this.authService.generateToken(tokenPayload);
+    if (access_token) {
+      res.cookie('access_token', access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+    }
     return { user: userProfile };
   }
 

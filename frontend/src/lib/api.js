@@ -411,6 +411,41 @@ export async function getSubscriptions() {
   return request('/subscriptions');
 }
 
+export async function getSubscription(id) {
+  return request(`/subscriptions/${id}`);
+}
+
+export async function getSubscriptionUsers() {
+  return request('/subscriptions/users');
+}
+
+export async function createSubscription(data) {
+  return request('/subscriptions', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function assignOfflineSubscription(data) {
+  return request('/subscriptions/assign-offline', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function updateSubscription(id, data) {
+  return request(`/subscriptions/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function deleteSubscription(id) {
+  return request(`/subscriptions/${id}`, {
+    method: 'DELETE'
+  });
+}
+
 export async function getMySubscription() {
   return request('/subscriptions/me');
 }
@@ -426,6 +461,35 @@ export async function extendSubscription(id, durationType, durationValue) {
   return request(`/subscriptions/${id}/extend`, {
     method: 'POST',
     body: JSON.stringify({ durationType, durationValue })
+  });
+}
+
+// ─── Subscription Packages ──────────────────────────────────────────────────────────
+export async function getSubscriptionPackages() {
+  return request('/subscriptions/packages');
+}
+
+export async function getSubscriptionPackage(id) {
+  return request(`/subscriptions/packages/${id}`);
+}
+
+export async function createSubscriptionPackage(data) {
+  return request('/subscriptions/packages', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSubscriptionPackage(id, data) {
+  return request(`/subscriptions/packages/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSubscriptionPackage(id) {
+  return request(`/subscriptions/packages/${id}`, {
+    method: 'DELETE',
   });
 }
 

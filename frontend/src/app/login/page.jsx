@@ -22,7 +22,17 @@ export default function LoginPage() {
       if (user.role === 'ADMIN') {
         router.push('/admin/dashboard');
       } else {
-        router.push('/cad-conversion');
+        const isSubActive = Boolean(
+          user.isSubscriptionActive ||
+          (user.subscription &&
+            user.subscription.status === 'ACTIVE' &&
+            new Date(user.subscription.endDate).getTime() > Date.now())
+        );
+        if (isSubActive) {
+          router.push('/cad-conversion');
+        } else {
+          router.push('/subscription');
+        }
       }
     }
   }, [status, user, router]);

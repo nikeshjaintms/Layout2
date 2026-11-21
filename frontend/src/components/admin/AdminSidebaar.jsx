@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Briefcase, Menu, X, Shield, Database, ChevronDown, Coffee, Activity, Palette, Globe } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Menu, X, Shield, Database, ChevronDown, Coffee, Activity, Palette, Globe, Layers, UserCheck } from 'lucide-react';
 import { Can } from '@/lib/ability';
 import { AbilityContext } from '@/lib/ability';
 import { useContext } from 'react';
@@ -44,11 +44,26 @@ export default function AdminSidebaar() {
     },
     {
       name: 'Subscriptions',
-      href: '/admin/subscriptions',
-      activeMatch: '/admin/subscriptions',
       icon: Activity,
-      action: 'sidebar',
-      subject: 'user' // piggyback on user permission
+      children: [
+        {
+          name: 'Subscription Packages',
+          href: '/admin/subscriptions/packages',
+          activeMatch: '/admin/subscriptions/packages',
+          icon: Layers,
+          action: 'sidebar',
+          subject: 'user'
+        },
+        {
+          name: 'Assign Subscriptions',
+          href: '/admin/subscriptions',
+          activeMatch: '/admin/subscriptions',
+          exact: true,
+          icon: UserCheck,
+          action: 'sidebar',
+          subject: 'user'
+        }
+      ]
     },
     {
       name: 'Assigned Projects',
@@ -134,8 +149,10 @@ export default function AdminSidebaar() {
               if (item.children) {
                 if (!canAccessParent(item)) return null;
                 
-                const isActive = item.children.some(child => pathname.startsWith(child.activeMatch));
-                const isMenuOpen = openMenus[item.name] || isActive;
+                const isActive = item.children.some(child => 
+                  child.exact ? pathname === child.activeMatch : pathname.startsWith(child.activeMatch)
+                );
+                const isMenuOpen = openMenus[item.name] !== undefined ? openMenus[item.name] : isActive;
                 const Icon = item.icon;
 
                 return (
@@ -158,7 +175,9 @@ export default function AdminSidebaar() {
                       <div className="pl-4 py-1 space-y-1 border-l-2 border-gray-200 ml-6 mt-1">
                         {item.children.map(child => {
                           if (!ability.can(child.action, child.subject)) return null;
-                          const isChildActive = pathname.startsWith(child.activeMatch);
+                          const isChildActive = child.exact
+                            ? pathname === child.activeMatch
+                            : (pathname === child.activeMatch || pathname.startsWith(child.activeMatch + '/'));
                           const ChildIcon = child.icon;
                           
                           return (

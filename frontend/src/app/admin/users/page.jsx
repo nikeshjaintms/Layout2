@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { UserPlus, Search, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Loader2, CreditCard, Banknote, X, AlertCircle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUsers, deleteUser, clearCreateError } from '@/redux/slices/usersSlice';
+import { assignOfflineSubscription } from '@/redux/slices/subscriptionsSlice';
 import Swal from 'sweetalert2';
 import Link from 'next/link';
 import Pagination from '@/components/common/Pagination';
@@ -19,6 +20,20 @@ export default function AdminUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
 
+  // Offline Payment Assignment Modal state
+  const [offlineModalUser, setOfflineModalUser] = useState(null);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [offlineForm, setOfflineForm] = useState({
+    paymentMethod: 'Cash',
+    paymentReference: '',
+    amount: '39999',
+    notes: '',
+    durationPreset: '365',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    renewalMode: 'EXTEND',
+  });
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -27,6 +42,89 @@ export default function AdminUsers() {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // Compute end date for offline form
+  useEffect(() => {
+    if (offlineForm.startDate && offlineForm.durationPreset !== 'CUSTOM') {
+      const existingSub = offlineModalUser?.subscription;
+      const isExistingActive = existingSub && new Date(existingSub.endDate).getTime() > Date.now();
+
+      let baseDate;
+      if (isExistingActive && offlineForm.renewalMode === 'EXTEND') {
+        baseDate = new Date(existingSub.endDate);
+      } else {
+        baseDate = new Date(offlineForm.startDate);
+      }
+
+      const days = parseInt(offlineForm.durationPreset, 10);
+      if (!isNaN(days)) {
+        baseDate.setDate(baseDate.getDate() + days);
+        setOfflineForm((prev) => ({
+          ...prev,
+          endDate: baseDate.toISOString().split('T')[0],
+        }));
+      }
+    }
+  }, [offlineForm.startDate, offlineForm.durationPreset, offlineModalUser, offlineForm.renewalMode]);
+
+  const handleOpenOfflineModal = (user) => {
+    const today = new Date().toISOString().split('T')[0];
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+
+    setOfflineModalUser(user);
+    setOfflineForm({
+      paymentMethod: 'Cash',
+      paymentReference: '',
+      amount: '39999',
+      notes: '',
+      durationPreset: '365',
+      startDate: today,
+      endDate: nextYear.toISOString().split('T')[0],
+      renewalMode: 'EXTEND',
+    });
+  };
+
+  const handleOfflineSubmit = async (e) => {
+    e.preventDefault();
+    if (!offlineModalUser) return;
+    setAssignLoading(true);
+    try {
+      await dispatch(
+        assignOfflineSubscription({
+          userId: offlineModalUser.id,
+          paymentMethod: offlineForm.paymentMethod,
+          paymentReference: offlineForm.paymentReference,
+          amount: offlineForm.amount,
+          notes: offlineForm.notes,
+          startDate: offlineForm.startDate,
+          endDate: offlineForm.endDate,
+          renewalMode: offlineForm.renewalMode,
+          status: 'ACTIVE',
+        })
+      ).unwrap();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Offline Subscription Assigned!',
+        html: `Subscription successfully assigned to <b>${offlineModalUser.name || offlineModalUser.email}</b>.<br/><br/><span style="color: #ABD2FA; font-size: 13px;">Mode: <b>${offlineForm.paymentMethod}</b> | Amount: <b>₹${offlineForm.amount || '0'}</b></span>`,
+        background: '#18181b',
+        color: '#fff',
+      });
+      setOfflineModalUser(null);
+      dispatch(fetchUsers({ page: currentPage, limit, search: debouncedSearch }));
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Assignment Failed',
+        text: err || 'Could not assign offline subscription.',
+        background: '#18181b',
+        color: '#fff',
+      });
+    } finally {
+      setAssignLoading(false);
+    }
+  };
 
   useEffect(() => {
     dispatch(fetchUsers({ page: currentPage, limit, search: debouncedSearch }));
@@ -182,6 +280,15 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                          {user.role?.name === 'CLIENT' && (
+                            <button
+                              onClick={() => handleOpenOfflineModal(user)}
+                              className="p-2 text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-600 border border-emerald-300 rounded-lg transition-all"
+                              title="Assign Offline Subscription (Cash, UPI, Bank Transfer)"
+                            >
+                              <CreditCard size={15} />
+                            </button>
+                          )}
                           <Can I="edit" a="user">
                             <Link 
                               href={`/admin/users/edit/${user.id}`}
@@ -224,6 +331,212 @@ export default function AdminUsers() {
         </div>
       </div>
       </div>
+
+      {/* OFFLINE SUBSCRIPTION ASSIGNMENT MODAL */}
+      {offlineModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-emerald-50">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-sm">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Assign Offline Subscription</h3>
+                  <p className="text-xs text-gray-600">Manual activation for offline payment (Cash, Bank Transfer, UPI)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setOfflineModalUser(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleOfflineSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Selected User Display */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs">
+                <span className="text-[11px] font-bold text-gray-400 uppercase">Client</span>
+                <p className="font-bold text-gray-900 text-sm mt-0.5">{offlineModalUser.name || 'Client'}</p>
+                <p className="text-gray-500">{offlineModalUser.email}</p>
+                {offlineModalUser.subscription && (
+                  <p className="mt-1 text-emerald-700 font-semibold">
+                    Current Expiration: {new Date(offlineModalUser.subscription.endDate).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Renewal Strategy if already has sub */}
+              {offlineModalUser.subscription && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <span className="font-bold">Renewal Option:</span>
+                  <div className="flex gap-4 pt-1">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="userRenewalMode"
+                        value="EXTEND"
+                        checked={offlineForm.renewalMode === 'EXTEND'}
+                        onChange={(e) => setOfflineForm({ ...offlineForm, renewalMode: e.target.value })}
+                        className="text-emerald-600"
+                      />
+                      <span>Extend current expiry</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="userRenewalMode"
+                        value="OVERWRITE"
+                        checked={offlineForm.renewalMode === 'OVERWRITE'}
+                        onChange={(e) => setOfflineForm({ ...offlineForm, renewalMode: e.target.value })}
+                        className="text-emerald-600"
+                      />
+                      <span>Start from selected date</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Offline Payment Details */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Payment Mode
+                  </label>
+                  <select
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={offlineForm.paymentMethod}
+                    onChange={(e) => setOfflineForm({ ...offlineForm, paymentMethod: e.target.value })}
+                    required
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer / NEFT">Bank Transfer (NEFT/RTGS)</option>
+                    <option value="UPI / QR Code">UPI / QR Code</option>
+                    <option value="Cheque / DD">Cheque / Demand Draft</option>
+                    <option value="Corporate Invoice">Corporate Invoice</option>
+                    <option value="Other Offline">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Amount Paid (₹)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="39999"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={offlineForm.amount}
+                    onChange={(e) => setOfflineForm({ ...offlineForm, amount: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Receipt / Transaction Ref No.
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. RCPT-1029, UPI/92839201"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={offlineForm.paymentReference}
+                  onChange={(e) => setOfflineForm({ ...offlineForm, paymentReference: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Admin Notes
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Received in cash at office"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={offlineForm.notes}
+                  onChange={(e) => setOfflineForm({ ...offlineForm, notes: e.target.value })}
+                />
+              </div>
+
+              {/* Duration Presets */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                  Plan Duration
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { days: '30', label: '1 Month' },
+                    { days: '90', label: '3 Months' },
+                    { days: '180', label: '6 Months' },
+                    { days: '365', label: '1 Year' },
+                  ].map((p) => (
+                    <button
+                      type="button"
+                      key={p.days}
+                      onClick={() => setOfflineForm({ ...offlineForm, durationPreset: p.days })}
+                      className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                        offlineForm.durationPreset === p.days
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={offlineForm.startDate}
+                    onChange={(e) => setOfflineForm({ ...offlineForm, startDate: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-2 text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={offlineForm.endDate}
+                    onChange={(e) => setOfflineForm({ ...offlineForm, endDate: e.target.value, durationPreset: 'CUSTOM' })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 border-t border-gray-200 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setOfflineModalUser(null)}
+                  className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={assignLoading}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
+                >
+                  {assignLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <span>Assign & Activate</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AuthGuard>
   );
 }

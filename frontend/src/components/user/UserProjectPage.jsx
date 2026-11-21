@@ -88,7 +88,7 @@ export default function UserProjectPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         
-        {error && (
+        {error && !error.toLowerCase().includes('no active') && !error.toLowerCase().includes('not found') && (
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 mb-6">
             {error}
           </div>
@@ -97,7 +97,7 @@ export default function UserProjectPage() {
         {loading ? (
           <UserProjectLoading />
         ) : (!projects || projects.length === 0) ? (
-          <UserProjectEmptyState />
+          <UserProjectEmptyState message={error} />
         ) : (
           <UserProjectGrid projects={projects} />
         )}
