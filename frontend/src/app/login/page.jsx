@@ -30,7 +30,7 @@ function LoginFormContent() {
   useEffect(() => {
     if (status === 'authenticated' && user) {
       if (user.role === 'ADMIN') {
-        router.push(redirectParam || '/admin/dashboard');
+        window.location.href = redirectParam || '/admin/dashboard';
       } else {
         const isSubActive = Boolean(
           user.isSubscriptionActive ||
@@ -39,13 +39,13 @@ function LoginFormContent() {
             new Date(user.subscription.endDate).getTime() > Date.now())
         );
         if (isSubActive) {
-          router.push(redirectParam || '/cad-conversion');
+          window.location.href = redirectParam || '/cad-conversion';
         } else {
-          router.push('/subscription');
+          window.location.href = '/subscription';
         }
       }
     }
-  }, [status, user, router, redirectParam]);
+  }, [status, user, redirectParam]);
 
   useEffect(() => {
     // Only dispatch on mount if we haven't checked auth yet
@@ -61,7 +61,7 @@ function LoginFormContent() {
     };
   }, [dispatch]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setEmailError('');
     setPasswordError('');
@@ -98,7 +98,33 @@ function LoginFormContent() {
 
     if (hasError) return;
 
-    dispatch(login({ email: cleanEmail, password: cleanPassword }));
+    try {
+      const res = await dispatch(login({ email: cleanEmail, password: cleanPassword })).unwrap();
+      const token = res?.access_token;
+      if (token && typeof window !== 'undefined') {
+        localStorage.setItem('access_token', token);
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax${secure}`;
+      }
+
+      const role = res?.user?.role;
+      let target = '/admin/dashboard';
+      if (role !== 'ADMIN') {
+        const isSubActive = Boolean(
+          res?.user?.isSubscriptionActive ||
+          (res?.user?.subscription &&
+            res.user.subscription.status === 'ACTIVE' &&
+            new Date(res.user.subscription.endDate).getTime() > Date.now())
+        );
+        target = isSubActive ? (redirectParam || '/cad-conversion') : '/subscription';
+      } else {
+        target = redirectParam || '/admin/dashboard';
+      }
+
+      window.location.href = target;
+    } catch (err) {
+      // Error handled by redux state
+    }
   };
 
   return (
