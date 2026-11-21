@@ -22,6 +22,7 @@ import {
   Check,
   Zap,
   Lock,
+  MapPin,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -469,31 +470,63 @@ export default function SubscriptionPurchasePage() {
                   <Building size={16} className="text-[#ABD2FA]" /> Direct Communication
                 </h4>
 
-                <div className="space-y-3 text-sm">
+                <div className="space-y-3.5 text-sm">
+                  {/* Office Address */}
+                  <div className="flex items-start gap-3 text-gray-300">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <MapPin size={16} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-400">Head Office Location</p>
+                      <a
+                        href="https://www.google.com/maps/dir//golden+square+bharuch/@21.722586,73.00463,18.82z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3be0214a1d6b4d31:0xae0daf8ad64322b7!2m2!1d73.0046459!2d21.7225728"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-white hover:text-[#ABD2FA] transition-colors leading-snug block mt-0.5"
+                      >
+                        915, 914, Ninth Floor, Golden Square, Bharuch, Gujarat, India - 392001
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Email */}
                   <div className="flex items-center gap-3 text-gray-300">
                     <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-[#ABD2FA] flex items-center justify-center shrink-0">
                       <Mail size={16} />
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-400">Email Administration</p>
-                      <a href="mailto:support@techomaxsolutions.com" className="font-semibold text-white hover:text-[#ABD2FA] transition-colors">
-                        support@techomaxsolutions.com
+                      <a href="mailto:info@techomaxsolution.com" className="font-semibold text-white hover:text-[#ABD2FA] transition-colors">
+                        info@techomaxsolution.com
                       </a>
                     </div>
                   </div>
 
+                  {/* Phone & WhatsApp */}
                   <div className="flex items-center gap-3 text-gray-300">
                     <div className="w-9 h-9 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center shrink-0">
                       <Phone size={16} />
                     </div>
                     <div>
                       <p className="text-[11px] text-gray-400">Phone & WhatsApp Support</p>
-                      <a href="tel:+919876543210" className="font-semibold text-white hover:text-green-400 transition-colors">
-                        +91 98765 43210 / +91 91234 56789
-                      </a>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <a href="tel:+918849012113" className="font-semibold text-white hover:text-green-400 transition-colors">
+                          +91-8849012113
+                        </a>
+                        <span className="text-gray-500">|</span>
+                        <a
+                          href="https://wa.me/918849012113"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-green-400 hover:underline"
+                        >
+                          Chat on WhatsApp ↗
+                        </a>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Working Hours */}
                   <div className="flex items-center gap-3 text-gray-300">
                     <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
                       <Clock size={16} />
