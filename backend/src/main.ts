@@ -10,16 +10,27 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const allowedPatterns = [
-        /^http:\/\/localhost(:[0-9]+)?$/,
-        /^http:\/\/127\.0\.0\.1(:[0-9]+)?$/,
-        /\.delawalagroup\.com$/,
-      ];
-      const isAllowed = allowedPatterns.some((pattern) => pattern.test(origin));
-      return callback(null, isAllowed);
+      if (
+        origin.includes('delawalagroup.com') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
     },
     credentials: true,
-    exposedHeaders: ['Content-Disposition', 'Content-Type'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers',
+    ],
+    exposedHeaders: ['Content-Disposition', 'Content-Type', 'Set-Cookie'],
   });
 
   app.use(cookieParser());
@@ -37,9 +48,10 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(5000);
-  logger.log('Backend running at http://localhost:5000');
-  console.log("Backend running at http://localhost:5000")
+  const port = process.env.PORT || 5000;
+  await app.listen(port);
+  logger.log(`Backend running at http://localhost:${port}`);
+  console.log(`Backend running at http://localhost:${port}`);
 }
 bootstrap();
 
